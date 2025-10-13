@@ -1,6 +1,5 @@
 # Real-Time AI Stock Prediction Platform
 
-![Platform Banner](https://i.imgur.com/your-banner-image-url.png) <!-- Optional: Create and add a banner image -->
 
 A full-stack, real-time stock analysis and prediction platform built with a sophisticated backend featuring Vue.js, Flask, Apache Kafka for messaging, and Apache Spark (MLlib) for machine learning.
 
@@ -36,12 +35,12 @@ This application provides a "Trading Terminal" style interface for viewing conti
 **Main Dashboard**
 *(Displays favorite stocks with real-time price updates)*
 <!-- Add your StockDashboard.vue screenshot here -->
-`![Dashboard Screenshot](path/to/your/dashboard_screenshot.png)`
+![Dashboard Screenshot](path/to/your/dashboard_screenshot.png)
 
 **Stock Detail Terminal**
 *(The main "Trading Terminal" UI with the interactive chart, live price, and AI prediction)*
 <!-- Add your StockDetail.vue screenshot here -->
-`![Detail Page Screenshot](path/to/your/detail_page_screenshot.png)`
+![Detail Page Screenshot](path/to/your/detail_page_screenshot.png)
 
 ---
 
@@ -75,3 +74,133 @@ Follow these instructions to get the project running on your local machine.
 ```bash
 git clone <your-repository-url>
 cd Stock_prediction
+```
+
+**2. Backend Setup (Critical Environment Setup)**
+
+This project requires a specific, stable set of Python libraries. Do not use your base environment.
+
+a. Create the dedicated Conda environment: This uses Python 3.9, which is compatible with all packages.
+
+```bash
+conda create --name stock_env_final python=3.9
+```
+
+b. Activate the new environment:
+
+```bash
+conda activate stock_env_final
+```
+
+c. Install all Python dependencies: This installs the "golden stack" of compatible libraries.
+
+```bash
+pip install pyspark==3.3.0 pandas==1.5.3 numpy==1.2.3 confluent-kafka yfinance Flask Flask-SocketIO eventlet flask-cors requests joblib scikit-learn
+```
+
+**3. Frontend Setup**
+
+```bash
+cd frontend
+npm install
+npm install chartjs-plugin-annotation
+```
+
+**4. Initial Machine Learning Model Training (Run Once)**
+
+Before starting the live system, you should pre-train the models.
+
+a. Activate the environment (if not already active):
+
+```bash
+conda activate stock_env_final
+```
+
+b. Run the training scripts from the project root directory:
+
+```bash
+# Train the live (next 5-min) prediction models
+python ml_training/train_regressor.py
+
+# Train the daily outlook prediction models
+python ml_training/train_classifier.py
+```
+
+## ▶️ How to Run the Application
+
+This is a distributed system with multiple services. You need to run each service in its own terminal.
+
+For ALL terminals, first navigate to the project root and activate the environment:
+
+```bash
+cd /path/to/Stock_prediction
+conda activate stock_env_final
+```
+
+**1. Terminal 1: The Training Service**
+
+Listens for requests to train new models.
+
+```bash
+python training_service.py
+```
+*(You will see `🚀 Training Service is running...`)*
+
+**2. Terminal 2: The Live Engine**
+
+Fetches live prices, listens for prediction requests, and runs live ML models.
+
+```bash
+python live_engine.py
+```
+*(You will see `🚀 Starting main producer loop...`)*
+
+**3. Terminal 3: The Flask Web Server**
+
+Runs your API and acts as the bridge to the frontend.
+
+```bash
+python app.py
+```
+*(You will see `* Running on http://127.0.0.1:5000`)*
+
+**4. Terminal 4: The Vue.js Frontend**
+
+Serves the UI to your browser.
+
+```bash
+cd frontend
+npm run dev
+```
+*(Open the local URL it provides, e.g., http://localhost:5173/)*
+
+## Optional: Running Offline Jobs
+
+**To generate the "Next Day Outlook"**: Run this script once per day after the market closes.
+
+```bash
+# (In an activated terminal)
+python batch_predictor.py
+```
+
+**To manually train a new stock**: Run this script if you don't want to rely on the automatic trigger.
+
+```bash
+# (In an activated terminal)
+python ml_training/train_on_demand.py <TICKER_SYMBOL>
+# Example: python ml_training/train_on_demand.py SBIN.NS
+```
+
+---
+
+## 📝 License
+
+[Add your license information here]
+
+## 🤝 Contributing
+
+[Add contribution guidelines here]
+
+## 📧 Contact
+
+[Add your contact information here]

@@ -238,15 +238,5 @@ Stock_prediction/
 
 ---
 
-## 📧 Contact
-
-[Add your contact information here]
-Phone : 8008918089
-mail : rduveenkumarreddy@gmail.com
----
 
 
-- Built with Apache Spark MLlib for machine learning
-- Real-time data streaming powered by Apache Kafka
-- Chart visualizations using Chart.js
-- Stock data provided by Yahoo Finance (yfinance)

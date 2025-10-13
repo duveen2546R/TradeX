@@ -238,21 +238,13 @@ Stock_prediction/
 
 ---
 
-## 📝 License
-
-[Add your license information here]
-
-## 🤝 Contributing
-
-[Add contribution guidelines here]
-
 ## 📧 Contact
 
 [Add your contact information here]
-
+Phone : 8008918089
+mail : rduveenkumarreddy@gmail.com
 ---
 
-## 🙏 Acknowledgments
 
 - Built with Apache Spark MLlib for machine learning
 - Real-time data streaming powered by Apache Kafka

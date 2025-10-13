@@ -1,5 +1,6 @@
 # Real-Time AI Stock Prediction Platform
 
+![Platform Banner](https://i.imgur.com/your-banner-image-url.png) <!-- Optional: Create and add a banner image -->
 
 A full-stack, real-time stock analysis and prediction platform built with a sophisticated backend featuring Vue.js, Flask, Apache Kafka for messaging, and Apache Spark (MLlib) for machine learning.
 
@@ -30,17 +31,45 @@ This application provides a "Trading Terminal" style interface for viewing conti
 
 ## 📸 Screenshots
 
-*A picture is worth a thousand words. Replace these placeholders with your own screenshots.*
+### Landing Page
+*Modern landing page with features overview*
 
-**Main Dashboard**
-*(Displays favorite stocks with real-time price updates)*
-<!-- Add your StockDashboard.vue screenshot here -->
-![Dashboard Screenshot](path/to/your/dashboard_screenshot.png)
+![Landing Page](screenshots/LandingPage.png)
 
-**Stock Detail Terminal**
-*(The main "Trading Terminal" UI with the interactive chart, live price, and AI prediction)*
-<!-- Add your StockDetail.vue screenshot here -->
-![Detail Page Screenshot](path/to/your/detail_page_screenshot.png)
+### Main Dashboard
+*View all your favorite stocks with real-time price updates and quick actions*
+
+![Dashboard](screenshots/DashBoard.png)
+
+### Stock Search
+*Powerful search interface to find and add stocks to your watchlist*
+
+![Search Interface](screenshots/Search.png)
+
+### Search Results
+*Browse through available stocks with detailed information*
+
+![Search Results](screenshots/SearchResult.png)
+
+### Features Overview
+*Interactive features section highlighting platform capabilities*
+
+![Features Section](screenshots/FeaturesSection.png)
+
+### Live Stock Analysis - Aeroflex Industries
+*Real-time trading terminal with live price chart and predictions*
+
+![Aeroflex Stock Analysis](screenshots/Aeroflex%20Stock.png)
+
+### Live Stock Analysis - HDFC Bank
+*Continuous price monitoring with interactive charts*
+
+![HDFC Stock Analysis](screenshots/HDFC%20Stock.png)
+
+### Market Closed - Next Day Predictions
+*AI-powered next-day outlook predictions when market is closed*
+
+![Market Closed Predictions](screenshots/MarketClosed&NextDay%20predictions.png)
 
 ---
 
@@ -193,6 +222,22 @@ python ml_training/train_on_demand.py <TICKER_SYMBOL>
 
 ---
 
+## 📂 Project Structure
+
+```
+Stock_prediction/
+├── frontend/               # Vue.js frontend application
+├── ml_training/           # Machine learning training scripts
+├── screenshots/           # Project screenshots
+├── app.py                 # Flask web server
+├── live_engine.py         # Real-time price fetching and prediction
+├── training_service.py    # On-demand model training service
+├── batch_predictor.py     # Daily outlook prediction script
+└── README.md             # This file
+```
+
+---
+
 ## 📝 License
 
 [Add your license information here]
@@ -204,3 +249,12 @@ python ml_training/train_on_demand.py <TICKER_SYMBOL>
 ## 📧 Contact
 
 [Add your contact information here]
+
+---
+
+## 🙏 Acknowledgments
+
+- Built with Apache Spark MLlib for machine learning
+- Real-time data streaming powered by Apache Kafka
+- Chart visualizations using Chart.js
+- Stock data provided by Yahoo Finance (yfinance)

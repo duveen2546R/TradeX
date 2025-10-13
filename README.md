@@ -1,6 +1,5 @@
-# Real-Time AI Stock Prediction Platform
+# TradeX ---- RealTime AI Stock Prediction Platform
 
-![Platform Banner](https://i.imgur.com/your-banner-image-url.png) <!-- Optional: Create and add a banner image -->
 
 A full-stack, real-time stock analysis and prediction platform built with a sophisticated backend featuring Vue.js, Flask, Apache Kafka for messaging, and Apache Spark (MLlib) for machine learning.
 

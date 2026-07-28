@@ -1,0 +1,8 @@
+Flask>=3.0,<4
+Flask-Cors>=4.0,<5
+Flask-Login>=0.6,<1
+pymongo[srv]>=4.6,<5
+confluent-kafka>=2.3,<3
+yfinance>=0.2,<1
+requests>=2.31,<3
+python-dotenv>=1.0,<2

@@ -2,7 +2,8 @@ import { createRouter, createWebHistory } from "vue-router";
 
 // Lazy-loaded components for better performance
 const LandingPage = () => import("./components/LandingPage.vue");
-const StockDashboard = () => import("./components/StockDashboard.vue");
+const LoginPage = () => import("./components/LoginPage.vue");
+const StockDashboard = () => import("./components/StockDashBoard.vue");
 const StockDetail = () => import("./components/StockDetail.vue");
 
 const routes = [
@@ -15,6 +16,11 @@ const routes = [
     path: "/dashboard",
     name: "StockDashboard",
     component: StockDashboard,
+  },
+  {
+    path: "/login",
+    name: "Login",
+    component: LoginPage,
   },
   {
     path: "/stock/:symbol",

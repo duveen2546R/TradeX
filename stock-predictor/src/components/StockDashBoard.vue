@@ -1,295 +1,48 @@
 <template>
-  <div
-    class="relative min-h-screen w-full flex flex-col items-center justify-start p-4 sm:p-6 lg:p-10 transition-all duration-700 overflow-hidden"
-    :class="theme === 'dark' ? 'bg-[#0b0f13] text-gray-200' : 'bg-gray-100 text-gray-900'"
-  >
-    <!-- Animated Gradient Background -->
-    <div class="aurora-wrapper">
-      <div class="aurora-blob-1"></div>
-      <div class="aurora-blob-2"></div>
-    </div>
-
-    <!-- Header -->
-    <header class="w-full max-w-7xl flex justify-between items-center mb-8 relative z-10">
-       <h1 class="text-3xl font-bold cursor-pointer" @click="$router.push('/')">
-        <span class="text-accent">TradeX</span>
-      </h1>
-      <button @click="toggleTheme" class="border px-4 py-2 rounded-full transition-all duration-300 text-sm"
-        :class="theme === 'dark' ? 'border-gray-700 hover:bg-gray-200 hover:text-black' : 'border-gray-300 hover:bg-gray-900 hover:text-white'">
-        {{ theme === 'dark' ? '☀️ Light' : '🌙 Dark' }}
-      </button>
-    </header>
-
-    <main class="w-full max-w-7xl flex flex-col items-center relative z-10">
-      <!-- Search Section -->
-      <div class="w-full lg:w-2/3 mb-12 text-center">
-        <h2 class="text-4xl font-bold mb-4">Find Your Next Investment</h2>
-        <p class="text-gray-400 mb-6">Search for any Indian stock by name or ticker symbol.</p>
-        <div class="relative">
-          <input
-            v-model="searchQuery"
-            @input="handleSearch"
-            type="text"
-            placeholder="e.g., Reliance, INFY.NS, ^NSEI"
-            class="w-full px-5 py-4 rounded-full shadow-lg border-2 focus:outline-none focus:ring-4 focus:ring-accent/50 transition-all duration-300 text-lg"
-            :class="theme === 'dark' ? 'bg-[#161b22] border-gray-700' : 'bg-white border-gray-200'"
-          />
-          <ul
-            v-if="suggestions.length > 0"
-            class="absolute top-full mt-2 w-full text-left rounded-xl shadow-lg border overflow-hidden backdrop-blur-md z-50"
-            :class="theme === 'dark' ? 'bg-[#161b22]/90 border-gray-700' : 'bg-white/90 border-gray-200'"
-          >
-            <li
-              v-for="s in suggestions"
-              :key="s.symbol"
-              @click="selectStock(s.symbol)"
-              class="px-5 py-3 cursor-pointer hover:bg-accent/80 hover:text-white transition-colors duration-200"
-            >
-              <span class="font-semibold">{{ s.name }}</span> — <span class="text-sm opacity-70">{{ s.symbol }}</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-      
-      <!-- Searched Stock Card (if any) -->
-      <div v-if="searchedStock" class="w-full mb-12">
-         <h2 class="text-3xl font-semibold mb-6">Search Result</h2>
-         <div class="card-base-detailed group relative p-6">
-            <canvas :id="'chart-search-' + searchedStock.symbol" class="absolute inset-0 w-full h-full opacity-20 chart-mask"></canvas>
-            <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-4">
-              <div @click="$router.push(`/stock/${searchedStock.symbol}`)" class="flex-1 cursor-pointer text-center md:text-left">
-                <h3 class="text-3xl font-bold">{{ searchedStock.name }}</h3>
-                <p class="text-gray-400">{{ searchedStock.symbol }}</p>
-              </div>
-
-              <!-- "Add to Favorites" Button with Optimistic UI -->
-              <button
-                v-if="!isSearchedStockInFavorites"
-                @click.stop="addFavorite(searchedStock)"
-                class="bg-accent/80 text-white px-5 py-2 rounded-full font-semibold hover:bg-accent transition-colors duration-200 whitespace-nowrap"
-              >
-                ⭐ Add to Favorites
-              </button>
-               <div v-else class="text-accent font-semibold flex items-center gap-2">
-                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
-                 In Favorites
-              </div>
-
-              <div @click="$router.push(`/stock/${searchedStock.symbol}`)" class="flex-1 cursor-pointer text-center md:text-right">
-                <p class="text-3xl font-semibold">₹{{ searchedStock.current.toFixed(2) }}</p>
-                <p class="text-lg" :class="searchedStock.change >= 0 ? 'text-green-400' : 'text-red-400'">
-                  {{ searchedStock.change >= 0 ? '+' : '' }}{{ searchedStock.change.toFixed(2) }}%
-                </p>
-              </div>
-            </div>
-         </div>
-      </div>
-
-      <!-- Favorites Section -->
-      <div class="w-full">
-        <h2 class="text-3xl font-semibold mb-6">Your Favorites</h2>
-        <div v-if="loadingFavorites" class="text-center py-10 text-gray-400">Loading your favorites...</div>
-        <div v-else-if="favorites.length === 0" class="card-base text-center py-16">
-            <p class="text-2xl mb-2">Your watchlist is empty.</p>
-            <p class="text-gray-400">Use the search bar above to find and add stocks to your list.</p>
-        </div>
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          <div
-            v-for="stock in favorites"
-            :key="stock.symbol"
-            class="card-base group relative overflow-hidden p-5 cursor-pointer flex flex-col justify-between h-48"
-            @click="$router.push(`/stock/${stock.symbol}`)"
-          >
-            <canvas :id="'chart-' + stock.symbol" class="absolute left-0 bottom-0 w-full h-2/3 opacity-20 group-hover:opacity-30 transition-opacity duration-300 chart-mask"></canvas>
-            
-            <div class="relative z-10 flex justify-between items-start">
-              <div>
-                <h3 class="text-2xl font-bold">{{ stock.symbol }}</h3>
-                <p class="text-sm text-gray-400 truncate w-40">{{ stock.name }}</p>
-              </div>
-              <button
-                @click.stop="removeFavorite(stock.symbol)"
-                class="text-sm opacity-50 hover:opacity-100 hover:text-red-400 transition-all duration-200"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div class="relative z-10 text-right">
-              <p class="text-2xl font-semibold">₹{{ stock.current.toFixed(2) }}</p>
-              <p class="font-medium" :class="stock.change >= 0 ? 'text-green-400' : 'text-red-400'">
-                 {{ stock.change >= 0 ? '+' : '' }}{{ stock.change.toFixed(2) }}%
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-  </div>
+  <main class="dashboard">
+    <div class="aurora-wrapper"><div class="aurora-blob blob-one"></div><div class="aurora-blob blob-two"></div><div class="grid-glow"></div></div>
+    <NotificationCenter />
+    <header><div><strong>TradeX</strong><span>Paper Trading Terminal</span></div><div class="account">{{ user?.email }} <button @click="logout">Sign out</button></div></header>
+    <section v-if="portfolio" class="metrics">
+      <article><span>Virtual cash</span><b>{{ money(portfolio.cash_paise) }}</b></article>
+      <article><span>Portfolio equity</span><b>{{ money(portfolio.equity_paise) }}</b></article>
+      <article><span>Total P&amp;L</span><b :class="profit(portfolio.total_pnl_paise)">{{ signedMoney(portfolio.total_pnl_paise) }}</b></article>
+      <article><span>Win rate</span><b>{{ portfolio.win_rate.toFixed(1) }}%</b><small>{{ portfolio.closed_lots }} closed lots</small></article>
+    </section>
+    <section class="grid">
+      <article class="panel trade"><h2>Place paper order</h2><p>Orders fill only when a fresh live market price is available.</p>
+        <form @submit.prevent="placeOrder"><input v-model.trim="order.symbol" placeholder="RELIANCE.NS" required /><select v-model="order.side"><option>BUY</option><option>SELL</option></select><input v-model.number="order.quantity" min="1" type="number" placeholder="Shares" required /><button>Place {{ order.side }}</button></form><p v-if="message" :class="messageType">{{ message }}</p>
+      </article>
+      <article class="panel"><div class="title"><h2>Active positions</h2><button class="quiet" @click="resetPortfolio">Reset portfolio</button></div><p v-if="!portfolio?.positions.length" class="empty">No active positions.</p><div v-for="position in portfolio?.positions" :key="position.symbol" class="position"><router-link :to="`/stock/${position.symbol}`">{{ position.symbol }}</router-link><span>{{ position.quantity }} shares · avg {{ money(position.average_cost_paise) }}</span><b :class="profit(position.unrealized_pnl_paise)">{{ position.last_price_paise === null ? 'Awaiting live price' : signedMoney(position.unrealized_pnl_paise) }}</b></div></article>
+      <article class="panel watch"><div class="title"><h2>Watchlist</h2><form @submit.prevent="addWatch"><input v-model.trim="watchSymbol" placeholder="Symbol" /><button>Add</button></form></div><div v-if="!watchlist.length" class="empty">Add symbols to track forecasts and alerts.</div><div v-for="symbol in watchlist" :key="symbol" class="watch-row"><router-link :to="`/stock/${symbol}`">{{ symbol }}</router-link><button class="quiet" @click="removeWatch(symbol)">Remove</button></div></article>
+      <article class="panel alerts"><h2>Custom alerts</h2><form @submit.prevent="createAlert"><input v-model.trim="alert.symbol" placeholder="Symbol" required /><select v-model="alert.kind"><option value="price">Price crossing</option><option value="ai_movement">AI move ≥ 1.5%</option></select><template v-if="alert.kind === 'price'"><select v-model="alert.direction"><option value="below">Drops below</option><option value="above">Rises above</option></select><input v-model.number="alert.threshold" type="number" min="0.01" step="0.01" placeholder="Price in ₹" required /></template><button>Enable alert</button></form><div v-for="item in alerts" :key="item._id" class="alert-row"><span><b>{{ item.symbol }}</b> · {{ describeAlert(item) }}</span><button v-if="item.status === 'active'" class="quiet" @click="disableAlert(item._id)">Disable</button></div></article>
+      <article class="panel orders"><h2>Recent orders</h2><div v-if="!orders.length" class="empty">Your completed paper orders will appear here.</div><div v-for="item in orders" :key="item._id" class="order"><b :class="item.side === 'BUY' ? 'buy' : 'sell'">{{ item.side }}</b><span>{{ item.quantity }} {{ item.symbol }} at {{ money(item.price_paise) }}</span><span :class="profit(item.realized_pnl_paise)">{{ item.side === 'SELL' ? signedMoney(item.realized_pnl_paise) : '' }}</span></div></article>
+    </section>
+  </main>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
-import Chart from "chart.js/auto";
-import axios from "axios";
+import { onMounted, reactive, ref } from "vue";
+import { useRouter } from "vue-router";
+import api from "../api";
+import NotificationCenter from "./NotificationCenter.vue";
 
-// --- STATE ---
-const theme = ref(localStorage.getItem("theme") || "dark");
-const favorites = ref([]);
-const searchQuery = ref("");
-const suggestions = ref([]);
-const searchedStock = ref(null);
-const loadingFavorites = ref(true);
-const userId = 1; 
-let chartInstances = {};
-let priceEventSource = null;
-
-// --- COMPUTED PROPERTIES ---
-const isSearchedStockInFavorites = computed(() => {
-  if (!searchedStock.value) return false;
-  return favorites.value.some(fav => fav.symbol === searchedStock.value.symbol);
-});
-
-// --- API & DATA (with Real-time Integration) ---
-const fetchFavorites = async () => {
-  loadingFavorites.value = true;
-  try {
-    const res = await axios.get(`http://127.0.0.1:5000/favorites/${userId}`);
-    favorites.value = res.data;
-  } catch (error) {
-    console.error("Failed to fetch initial favorites:", error);
-  } finally {
-    loadingFavorites.value = false;
-  }
-};
-
-const handleSearch = async () => {
-  if (searchQuery.value.length < 2) {
-    suggestions.value = [];
-    return;
-  }
-  try {
-    const res = await axios.get(`http://127.0.0.1:5000/search?query=${searchQuery.value}`);
-    suggestions.value = res.data.symbols || [];
-  } catch (error) {
-    console.error("Search failed:", error);
-  }
-};
-
-const selectStock = async (symbol) => {
-  searchQuery.value = "";
-  suggestions.value = [];
-  try {
-    // We get more complete data here, including a chart trend
-    const res = await axios.get(`http://127.0.0.1:5000/stock_history/${symbol}`);
-    // We rename the key for consistency with our chart function
-    res.data.predictions = res.data.last_5_days_trend; 
-    searchedStock.value = res.data;
-  } catch (err) {
-    console.error("Error fetching selected stock:", err);
-  }
-};
-
-// --- Optimistic UI for Favorites ---
-const addFavorite = (stockToAdd) => {
-  favorites.value.push(stockToAdd);
-  axios.post("http://127.0.0.1:5000/update_favorites", { user_id: userId, symbol: stockToAdd.symbol, action: "add" })
-    .catch(err => {
-      console.error("Failed to save favorite:", err);
-      favorites.value = favorites.value.filter(s => s.symbol !== stockToAdd.symbol);
-    });
-};
-
-const removeFavorite = (symbolToRemove) => {
-  favorites.value = favorites.value.filter(s => s.symbol !== symbolToRemove);
-  axios.post("http://127.0.0.1:5000/update_favorites", { user_id: userId, symbol: symbolToRemove, action: "remove" });
-};
-
-// --- Live Dashboard Stream ---
-const startDashboardStream = () => {
-  if (priceEventSource) priceEventSource.close();
-  
-  priceEventSource = new EventSource('http://127.0.0.1:5000/stream/all_prices');
-  console.log("Dashboard stream connected.");
-
-  priceEventSource.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    
-    // Check if the update is for a stock in our favorites list
-    const favToUpdate = favorites.value.find(s => s.symbol === data.symbol);
-    if (favToUpdate) {
-      favToUpdate.current = data.price;
-      favToUpdate.change = data.change_pct; // Use direct pct change from producer
-    }
-
-    // Check if the update is for the currently searched stock
-    if (searchedStock.value && searchedStock.value.symbol === data.symbol) {
-      searchedStock.value.current = data.price;
-       // We can also calculate a live change for the searched stock
-      searchedStock.value.change = ((data.price - searchedStock.value.previousClose) / searchedStock.value.previousClose) * 100;
-    }
-  };
-
-  priceEventSource.onerror = (err) => {
-     console.error("Dashboard stream error:", err);
-     priceEventSource.close();
-  };
-};
-
-// --- CHARTING & THEME ---
-const createOrUpdateChart = (stock) => {
-  if (!stock || !stock.predictions) return;
-  // Use a unique ID for the searched stock card chart
-  const chartId = stock === searchedStock.value ? 'chart-search-' + stock.symbol : 'chart-' + stock.symbol;
-  
-  nextTick(() => {
-    const ctx = document.getElementById(chartId);
-    if (!ctx) return;
-    if (chartInstances[chartId]) chartInstances[chartId].destroy();
-    const isUp = stock.change >= 0;
-    const color = isUp ? '#22c55e' : '#ef4444';
-    chartInstances[chartId] = new Chart(ctx, { type: "line", data: { labels: Array.from({ length: stock.predictions.length }), datasets: [{ data: stock.predictions, borderColor: color, tension: 0.4, borderWidth: 3, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } } });
-  });
-};
-
-watch(favorites, (newFavorites) => { newFavorites.forEach(createOrUpdateChart); }, { deep: true });
-watch(searchedStock, (newStock) => { if(newStock) createOrUpdateChart(newStock); });
-const applyTheme = () => { document.documentElement.classList.toggle("dark", theme.value === "dark"); localStorage.setItem("theme", theme.value); };
-const toggleTheme = () => { theme.value = theme.value === "dark" ? "light" : "dark"; };
-watch(theme, applyTheme);
-
-// --- LIFECYCLE HOOKS ---
-onMounted(async () => {
-  applyTheme();
-  await fetchFavorites();
-  startDashboardStream();
-});
-
-onUnmounted(() => {
-  Object.values(chartInstances).forEach(chart => chart.destroy());
-  if (priceEventSource) {
-    priceEventSource.close();
-    console.log("Dashboard stream closed.");
-  }
-});
+const router = useRouter(); const user = ref(); const portfolio = ref(); const orders = ref([]); const watchlist = ref([]); const alerts = ref([]); const message = ref(""); const messageType = ref("success");
+const order = reactive({ symbol: "", side: "BUY", quantity: 1 }); const alert = reactive({ symbol: "", kind: "price", direction: "below", threshold: "" }); const watchSymbol = ref("");
+const money = (paise) => paise == null ? "—" : new Intl.NumberFormat("en-IN", { style:"currency", currency:"INR", maximumFractionDigits:2 }).format(paise / 100);
+const signedMoney = (paise) => `${paise >= 0 ? '+' : '−'}${money(Math.abs(paise))}`; const profit = (paise) => paise == null ? "" : paise >= 0 ? "gain" : "loss";
+const describeAlert = (item) => item.kind === "ai_movement" ? "AI forecast movement ≥ 1.5%" : `${item.direction === 'above' ? 'rises above' : 'drops below'} ${money(item.threshold_paise)} · ${item.status}`;
+async function load() { const [me, p, o, w, a] = await Promise.all([api.get('/api/auth/me'), api.get('/api/portfolio'), api.get('/api/orders'), api.get('/api/watchlist'), api.get('/api/alerts')]); user.value=me.data.user; portfolio.value=p.data; orders.value=o.data; watchlist.value=w.data; alerts.value=a.data; }
+async function placeOrder() { try { const { data } = await api.post('/api/orders', order); message.value=`${data.side} order filled at ${money(data.price_paise)}.`; messageType.value='success'; await load(); } catch (err) { message.value=err.response?.data?.error || 'Order failed.'; messageType.value='error'; } }
+async function resetPortfolio() { if (!confirm('Archive this paper portfolio and start again with ₹10,00,000?')) return; await api.post('/api/portfolio/reset'); await load(); }
+async function addWatch() { if (!watchSymbol.value) return; await api.post('/api/watchlist', {symbol:watchSymbol.value}); watchSymbol.value=''; await load(); }
+async function removeWatch(symbol) { await api.delete(`/api/watchlist/${symbol}`); await load(); }
+async function createAlert() { try { await api.post('/api/alerts', alert); alert.symbol=''; alert.threshold=''; await load(); } catch (err) { message.value=err.response?.data?.error || 'Alert could not be created.'; messageType.value='error'; } }
+async function disableAlert(id) { await api.post(`/api/alerts/${id}/disable`); await load(); }
+async function logout() { await api.post('/api/auth/logout'); router.replace('/'); }
+onMounted(async () => { try { await load(); } catch (_) { router.replace('/login'); } });
 </script>
 
 <style scoped>
-/* All styles from your final dashboard UI remain the same */
-.text-accent { color: #00c896; }
-.card-base, .card-base-detailed { @apply backdrop-blur-md border rounded-2xl shadow-lg transition-all duration-300; }
-.dark .card-base, .dark .card-base-detailed { @apply bg-[#161b22]/70 border-gray-800; }
-.light .card-base, .light .card-base-detailed { @apply bg-white/70 border-gray-200; }
-.card-base:hover { @apply border-accent/80 -translate-y-1; }
-.chart-mask { mask-image: linear-gradient(to top, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%); }
-.aurora-wrapper { @apply absolute top-0 left-0 w-full h-full -z-0 overflow-hidden; }
-.aurora-blob-1, .aurora-blob-2 { @apply absolute rounded-full opacity-30 filter blur-3xl; }
-.dark .aurora-blob-1 { @apply w-96 h-96 bg-accent -top-16 -left-16 animate-aurora-1; }
-.dark .aurora-blob-2 { @apply w-72 h-72 bg-blue-500 -bottom-8 -right-8 animate-aurora-2; }
-.light .aurora-blob-1 { @apply w-96 h-96 bg-teal-200 -top-16 -left-16 animate-aurora-1; }
-.light .aurora-blob-2 { @apply w-72 h-72 bg-blue-200 -bottom-8 -right-8 animate-aurora-2; }
-@keyframes aurora-1 { 0% { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(120px, 80px) rotate(180deg); } 100% { transform: translate(0, 0) rotate(360deg); } }
-@keyframes aurora-2 { 0% { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(-100px, -60px) rotate(180deg); } 100% { transform: translate(0, 0) rotate(360deg); } }
-.animate-aurora-1 { animation: aurora-1 25s ease-in-out infinite alternate; }
-.animate-aurora-2 { animation: aurora-2 30s ease-in-out infinite alternate; }
+.dashboard { min-height:100vh; isolation:isolate; overflow:hidden; position:relative; padding:28px; color:#e2e8f0; background:#0b0f13; font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }.aurora-wrapper{position:absolute;inset:0;z-index:-1;overflow:hidden;background:radial-gradient(circle at 45% -20%,#164e6355,transparent 45%)}.aurora-blob{position:absolute;border-radius:999px;filter:blur(85px);opacity:.28;animation:drift 23s ease-in-out infinite alternate}.blob-one{width:36rem;height:36rem;background:#14b8a6;top:-20rem;left:-14rem}.blob-two{width:29rem;height:29rem;background:#2563eb;right:-12rem;bottom:-16rem;animation-delay:-8s}.grid-glow{position:absolute;inset:0;opacity:.18;background-image:linear-gradient(#2dd4bf12 1px,transparent 1px),linear-gradient(90deg,#2dd4bf12 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(circle at center,#000,transparent 72%)}@keyframes drift{to{transform:translate(110px,55px) scale(1.08)}}.dashboard header { display:flex; align-items:center; justify-content:space-between; max-width:1280px; margin:auto auto 26px; }.dashboard header strong { font-size:2rem; letter-spacing:-.06em; color:#2dd4bf; text-shadow:0 0 24px #2dd4bf55; }.dashboard header span { margin-left:12px; color:#94a3b8; }.account { display:flex; gap:14px; align-items:center; color:#cbd5e1; }.metrics,.grid { max-width:1280px; margin:auto; }.metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px; }.metrics article,.panel { border:1px solid #334155aa; border-radius:22px; background:linear-gradient(145deg,#161b22c9,#0c141dd1); box-shadow:0 16px 38px #0005,inset 0 1px #ffffff0d; backdrop-filter:blur(18px); }.metrics article { padding:20px; display:grid; gap:6px; transition:.25s; }.metrics article:hover,.panel:hover{border-color:#2dd4bf88;transform:translateY(-2px)}.metrics span,.panel p,small { color:#94a3b8; }.metrics b { font-size:1.38rem; }.grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }.panel { padding:20px; transition:.25s; }.panel h2 { margin:0 0 14px; font-size:1.12rem; }.panel form { display:flex; flex-wrap:wrap; gap:8px; } input,select,button { border-radius:999px; padding:10px 13px; border:1px solid #334155; background:#09121acc; color:#e2e8f0; } input:focus,select:focus{outline:0;border-color:#2dd4bf;box-shadow:0 0 0 3px #2dd4bf1c}input { min-width:0; flex:1; } button { cursor:pointer; border:0; background:linear-gradient(90deg,#14b8a6,#22d3ee); color:#042f2e; font-weight:800; transition:.2s; }button:hover{filter:brightness(1.1);transform:translateY(-1px)}.quiet { padding:7px 11px; color:#cbd5e1; background:#263545aa; box-shadow:none; }.title { display:flex; justify-content:space-between; gap:8px; align-items:center; }.position,.watch-row,.alert-row,.order { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 0; border-top:1px solid #33415588; }.position span,.order span,.alert-row span { color:#aebdca; font-size:.9rem; }.position { display:grid; grid-template-columns:1fr 2fr auto; }.order { display:grid; grid-template-columns:50px 1fr auto; }.empty { padding:14px 0; }.gain,.buy { color:#5eead4; }.loss,.sell,.error { color:#fca5a5; }.success { color:#5eead4; } a { color:#e2e8f0; text-decoration:none; font-weight:700; }a:hover{color:#5eead4}@media (max-width:800px) { .metrics,.grid { grid-template-columns:1fr; }.dashboard { padding:16px; }.dashboard header { align-items:flex-start; gap:12px; flex-direction:column; }.position,.order { grid-template-columns:1fr; } }
 </style>

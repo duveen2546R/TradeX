@@ -5,6 +5,18 @@ A full-stack, real-time stock analysis and prediction platform built with a soph
 
 This application provides a "Trading Terminal" style interface for viewing continuous stock price updates and live AI-powered price predictions.
 
+## Paper trading and MongoDB Atlas
+
+TradeX now stores accounts, watchlists, paper portfolios, orders, alerts, and notification history in MongoDB Atlas. Copy `.env.example` to `.env`, set a MongoDB Atlas connection string and a long `FLASK_SECRET_KEY`, then create an Atlas database user and allow the deployment IP/network. The URI belongs only in environment configuration, never in Git.
+
+Install the web API dependencies with `pip install -r requirements.txt`, start `python app.py`, and run `python market_monitor.py` alongside the existing live engine. The monitor consumes Kafka price/prediction events, maintains fresh quotes, and writes one-time alert notifications. A new account receives ₹10,00,000 virtual cash; market orders only fill on a fresh live quote.
+
+To keep the old shared favorites list, first register the destination account and run:
+
+```bash
+python migrate_legacy_favorites.py --email you@example.com
+```
+
 ---
 
 ## ✨ Key Features
@@ -236,6 +248,5 @@ Stock_prediction/
 ```
 
 ---
-
 
 

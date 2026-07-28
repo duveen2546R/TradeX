@@ -32,6 +32,7 @@ def init_database():
         serverSelectionTimeoutMS=5000,
         connectTimeoutMS=5000,
         retryWrites=True,
+        tz_aware=True,
     )
     client.admin.command("ping")
     database = client[os.getenv("MONGODB_DATABASE", "tradex")]

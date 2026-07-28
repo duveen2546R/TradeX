@@ -46,6 +46,7 @@ def process_price(db, payload):
         {"$set": {"symbol": symbol, "price_paise": price_paise, "change_pct": payload.get("change_pct"), "source_timestamp": payload.get("timestamp"), "updated_at": now}},
         upsert=True,
     )
+    print(f"Quote received: {symbol} ₹{price_paise / 100:.2f}", flush=True)
     if previous is None:
         return
     alerts = db.alerts.find({"symbol": symbol, "kind": "price", "status": "active"})
@@ -65,6 +66,7 @@ def process_prediction(db, payload):
     if not quote or not quote.get("price_paise"):
         return
     prediction_paise = int(round(float(payload["prediction"]) * 100))
+    print(f"Prediction received: {symbol} ₹{prediction_paise / 100:.2f}", flush=True)
     movement = ((prediction_paise - quote["price_paise"]) / quote["price_paise"]) * 100
     if abs(movement) < 1.5:
         return
@@ -80,9 +82,12 @@ def process_prediction(db, payload):
 
 
 def main():
+    print("Connecting to MongoDB Atlas…", flush=True)
     db = init_database()
+    print("MongoDB Atlas connected.", flush=True)
     consumer = Consumer({"bootstrap.servers": KAFKA_BOOTSTRAP, "group.id": "tradex-market-monitor", "auto.offset.reset": "latest", "enable.auto.commit": True})
     consumer.subscribe([PRICE_TOPIC, PREDICTION_TOPIC])
+    print(f"Listening for Kafka topics: {PRICE_TOPIC}, {PREDICTION_TOPIC}", flush=True)
     signal.signal(signal.SIGINT, stop)
     signal.signal(signal.SIGTERM, stop)
     try:

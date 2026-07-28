@@ -1,275 +1,432 @@
 <template>
-  <div
-    class="relative min-h-screen w-screen transition-all duration-700"
-    :class="theme === 'dark' ? 'bg-[#050505] text-white' : 'bg-[#f6f9fb] text-gray-900'"
-  >
-    <!-- 🌫 Animated Background -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      <div class="fog"></div>
-      <div class="light"></div>
-      <div class="light-sweep"></div>
-    </div>
+  <div class="min-h-screen bg-white dark:bg-black text-black dark:text-white font-sans overflow-x-hidden selection:bg-emerald-100 selection:text-emerald-900 dark:selection:bg-emerald-900 dark:selection:text-emerald-100 transition-colors duration-300">
+    
 
-    <!-- 🧭 Navbar -->
-    <header
-      class="flex justify-between items-center px-8 md:px-12 py-6 z-20 relative text-sm tracking-wide backdrop-blur-md bg-transparent"
-    >
-      <!-- App Name (No logo) -->
-      <h1
-        class="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-400 cursor-pointer"
-        @click="$router.push('/')"
-      >
-        TradeX
-      </h1>
-
-      <div class="flex items-center gap-4 md:gap-6">
-        <router-link
-          to="/dashboard"
-          class="hidden md:flex items-center gap-2 px-4 md:px-6 py-2 rounded-full text-sm font-semibold hover:bg-teal-600/20 border border-teal-400/30 transition-all duration-300"
-        >
-          <font-awesome-icon :icon="['fas', 'chart-line']" /> Dashboard
+    <!-- Navbar -->
+    <header class="sticky top-0 z-50 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-100 dark:border-[#1a1a1a] px-6 py-4 flex items-center justify-between transition-all">
+      <div class="flex items-center">
+        <router-link to="/" class="text-2xl font-black tracking-tight text-black dark:text-white flex items-center gap-2 hover:opacity-80 transition-opacity">
+          TradeX
         </router-link>
+      </div>
 
-        <!-- Theme Toggle -->
-        <button
-          @click="toggleTheme"
-          class="border border-teal-400/30 px-3 md:px-4 py-2 rounded-full transition-all duration-300 text-sm"
-          aria-label="Toggle Theme"
-        >
-          <font-awesome-icon :icon="['fas', theme === 'dark' ? 'sun' : 'moon']" />
-          <span class="hidden md:inline ml-1">{{ theme === 'dark' ? 'Light' : 'Dark' }}</span>
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600 dark:text-gray-400">
+        <router-link to="/dashboard" class="hover:text-black dark:hover:text-white transition-colors">Dashboard</router-link>
+      </nav>
+
+      <div class="flex items-center gap-4">
+        <button class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-[#1a1a1a]">
+          <font-awesome-icon :icon="['fas', 'search']" />
         </button>
+        <router-link to="/login" class="hidden sm:block text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors">
+          Sign In
+        </router-link>
+        <button @click="toggleTheme" class="theme-toggle text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-[#1a1a1a]" :title="theme === 'dark' ? 'Switch to light' : 'Switch to dark'">
+          <font-awesome-icon v-if="theme === 'dark'" :icon="['fas', 'sun']" />
+          <font-awesome-icon v-else :icon="['fas', 'moon']" />
+        </button>
+        <router-link to="/login" class="bg-black dark:bg-white text-white dark:text-black text-sm font-medium px-5 py-2.5 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-all shadow-sm hover:shadow-md">
+          Get Started
+        </router-link>
       </div>
     </header>
 
-    <!-- ✨ Hero Section -->
-    <main class="flex flex-col items-center justify-center text-center relative z-20 min-h-[85vh] px-6">
-      <Motion :initial="{ opacity: 0, y: 40 }" :animate="{ opacity: 1, y: 0 }" :transition="{ duration: 1.2 }">
-        <h1
-          class="text-5xl md:text-7xl lg:text-[6rem] font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-cyan-300 to-white drop-shadow-2xl animate-glow"
-        >
-          Predict. Invest. Grow.
-        </h1>
-      </Motion>
-
-      <Motion
-        :initial="{ opacity: 0 }"
-        :animate="{ opacity: 1 }"
-        :transition="{ delay: 1.2, duration: 1.2 }"
-        class="mt-10 flex flex-col sm:flex-row gap-4 sm:gap-6"
-      >
-        <router-link
-          to="/dashboard"
-          class="px-6 md:px-8 py-3 rounded-full text-base md:text-lg font-semibold bg-gradient-to-r from-teal-500 to-cyan-400 hover:scale-105 hover:shadow-xl transition-all duration-300"
-        >
-          <font-awesome-icon :icon="['fas', 'chart-area']" /> Launch Dashboard
-        </router-link>
-
-      </Motion>
-    </main>
-
-    <!-- 🌟 Features Section -->
-    <section class="py-24 px-6 md:px-12 relative z-20">
-      <!-- Parallax Fog -->
-      <div class="absolute inset-0 opacity-20 pointer-events-none -z-10">
-        <div class="parallax-fog"></div>
+    <!-- Hero Section -->
+    <main class="relative max-w-7xl mx-auto px-6 pt-20 pb-32 md:pt-32 md:pb-40 grid md:grid-cols-2 gap-16 items-center">
+      
+      <!-- Left: Text content -->
+      <div>
+        <Motion :initial="{ opacity: 0, y: 20 }" :animate="{ opacity: 1, y: 0 }" :transition="{ duration: 0.6 }">
+          <span class="inline-block py-1 px-3 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold tracking-wider mb-6 border border-emerald-100 dark:border-emerald-800/50">
+            AI-POWERED TRADING PLATFORM
+          </span>
+          <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight text-black dark:text-white leading-[1.1] mb-6">
+            Predict.<br/>Invest.<br/><span class="text-emerald-500">Grow.</span>
+          </h1>
+          <p class="text-lg md:text-xl text-gray-500 dark:text-gray-400 mb-10 max-w-lg leading-relaxed">
+            Experience the future of investing with TradeX. Leverage real-time market data and state-of-the-art AI predictions to trade smarter.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4">
+            <router-link to="/dashboard" class="bg-black dark:bg-white text-white dark:text-black text-center font-semibold px-8 py-4 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 hover:-translate-y-0.5 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
+              Launch Dashboard <font-awesome-icon :icon="['fas', 'arrow-right']" class="text-sm" />
+            </router-link>
+            <a href="#learn-more" class="bg-white dark:bg-black text-black dark:text-white border border-gray-200 dark:border-[#1a1a1a] text-center font-semibold px-8 py-4 rounded-full hover:bg-gray-50 dark:hover:bg-[#0a0a0a] transition-all duration-300 flex items-center justify-center">
+              Learn More
+            </a>
+          </div>
+        </Motion>
       </div>
 
-      <div class="max-w-6xl mx-auto text-center relative z-10">
-        <Motion
-          :initial="{ opacity: 0, y: 30 }"
-          :animate="{ opacity: 1, y: 0 }"
-          :transition="{ duration: 0.8 }"
-        >
-          <h2 class="text-4xl md:text-5xl font-bold mb-6">
-            Why Choose <span class="text-teal-400">Eventra Stocks</span>?
-          </h2>
-          <p class="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto text-base md:text-lg">
-            Accelerate your investing journey with predictive insights, live analytics, and a seamless dashboard experience.
-          </p>
+      <!-- Right: Visual -->
+      <div class="relative w-full flex justify-center md:justify-end perspective-1000">
+        <Motion :initial="{ opacity: 0, scale: 0.95, rotateY: 5 }" :animate="{ opacity: 1, scale: 1, rotateY: 0 }" :transition="{ duration: 0.8, delay: 0.2 }" class="w-full max-w-md">
+          <div class="bg-white dark:bg-[#0a0a0a] rounded-3xl p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] border border-gray-100 dark:border-[#1a1a1a] relative z-10 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.7)] hover:-translate-y-1 transition-all duration-500">
+            <div class="flex justify-between items-start mb-8">
+              <div>
+                <div class="text-sm font-bold text-gray-400 dark:text-gray-500 mb-1">RELIANCE.NS</div>
+                <div class="text-4xl font-black tracking-tight text-black dark:text-white">₹2,847.50</div>
+              </div>
+              <div class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">
+                <font-awesome-icon :icon="['fas', 'arrow-up']" class="text-xs" /> 1.24%
+              </div>
+            </div>
+            
+            <!-- SVG Line Chart -->
+            <div class="h-32 w-full mt-4">
+              <svg viewBox="0 0 400 120" class="w-full h-full overflow-visible">
+                <defs>
+                  <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#10b981" stop-opacity="0.2" />
+                    <stop offset="100%" stop-color="#10b981" stop-opacity="1" />
+                  </linearGradient>
+                  <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#10b981" stop-opacity="0.2" />
+                    <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <path 
+                  d="M0,100 C40,90 80,110 120,80 C160,50 200,60 240,40 C280,20 320,50 360,20 L400,0" 
+                  fill="none" 
+                  stroke="url(#lineGradient)" 
+                  stroke-width="4" 
+                  stroke-linecap="round"
+                  class="chart-line-anim"
+                />
+                <path 
+                  d="M0,100 C40,90 80,110 120,80 C160,50 200,60 240,40 C280,20 320,50 360,20 L400,0 L400,120 L0,120 Z" 
+                  fill="url(#areaGradient)" 
+                  class="chart-area-anim"
+                />
+                <!-- Current point dot -->
+                <circle cx="400" cy="0" r="6" fill="#10b981" class="chart-dot-anim" />
+                <circle cx="400" cy="0" r="14" fill="#10b981" opacity="0.2" class="chart-pulse-anim" />
+              </svg>
+            </div>
+          </div>
+          
+          <!-- Decorative element behind card -->
+          <div class="absolute -inset-4 bg-gradient-to-tr from-gray-100 to-gray-50 dark:from-[#171717] dark:to-[#0a0a0a] rounded-[2.5rem] -z-10 transform rotate-3 scale-105 transition-colors duration-500"></div>
+        </Motion>
+      </div>
+    </main>
+
+    <!-- Live Markets & News Section -->
+    <section class="max-w-7xl mx-auto px-6 pb-24">
+      <div class="grid lg:grid-cols-3 gap-12">
+        
+        <!-- Live Market Ticker / Cards -->
+        <div class="lg:col-span-2">
+          <div class="flex items-center justify-between mb-8">
+            <h2 class="text-2xl md:text-3xl font-extrabold text-black dark:text-white tracking-tight">Top Movers</h2>
+            <router-link to="/dashboard" class="text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1">
+              View All <font-awesome-icon :icon="['fas', 'arrow-right']" class="text-xs" />
+            </router-link>
+          </div>
+          <div v-if="loadingStocks" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div v-for="i in 6" :key="i" class="h-28 bg-gray-100 dark:bg-[#1a1a1a] rounded-2xl animate-pulse"></div>
+          </div>
+          <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <router-link v-for="stock in topStocks" :key="stock.symbol" :to="`/stock/${stock.symbol}`" class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-[#1a1a1a] p-5 rounded-2xl shadow-sm hover:shadow-xl dark:shadow-none dark:hover:bg-[#171717] transition-all flex flex-col justify-between group cursor-pointer">
+              <div class="font-bold text-gray-600 dark:text-gray-400 mb-4 tracking-wide text-sm">{{ stock.name }}</div>
+              <div class="flex flex-col gap-1">
+                <div class="text-2xl font-black text-black dark:text-white">₹{{ stock.price.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</div>
+                <div :class="stock.change_percent >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'" class="text-sm font-bold flex items-center gap-1">
+                  <font-awesome-icon :icon="['fas', stock.change_percent >= 0 ? 'caret-up' : 'caret-down']" />
+                  {{ Math.abs(stock.change_percent).toFixed(2) }}%
+                </div>
+              </div>
+            </router-link>
+          </div>
+        </div>
+
+        <!-- Latest News -->
+        <div>
+          <div class="flex items-center justify-between mb-8">
+            <h2 class="text-2xl md:text-3xl font-extrabold text-black dark:text-white tracking-tight">Market News</h2>
+          </div>
+          <div v-if="loadingNews" class="space-y-4">
+            <div v-for="i in 3" :key="i" class="h-24 bg-gray-100 dark:bg-[#1a1a1a] rounded-2xl animate-pulse"></div>
+          </div>
+          <div v-else class="space-y-4">
+            <a v-for="news in marketNews.slice(0, 3)" :key="news.link" :href="news.link" target="_blank" class="block bg-white dark:bg-[#121212] border border-gray-100 dark:border-[#1a1a1a] p-5 rounded-2xl shadow-sm hover:shadow-lg dark:shadow-none dark:hover:bg-[#171717] transition-all group">
+              <h3 class="font-bold text-base mb-2 leading-snug line-clamp-2 text-black dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{{ news.title }}</h3>
+              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center justify-between">
+                <span>{{ news.provider }}</span>
+                <span>{{ new Date(news.pubDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) }}</span>
+              </p>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Categories Section -->
+    <section id="learn-more" class="bg-gray-50 dark:bg-[#0a0a0a] py-24 border-y border-gray-100 dark:border-[#1a1a1a] transition-colors">
+      <div class="max-w-7xl mx-auto px-6">
+        <Motion :initial="{ opacity: 0, y: 20 }" :animate="{ opacity: 1, y: 0 }" :transition="{ duration: 0.6 }">
+          <div class="text-center mb-16">
+            <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-4 text-black dark:text-white">Everything you need to trade smarter</h2>
+            <p class="text-gray-500 dark:text-gray-400 text-lg max-w-2xl mx-auto">Powerful tools built for modern investors, seamlessly combining live data and intelligent forecasts.</p>
+          </div>
         </Motion>
 
-        <div class="features-grid grid md:grid-cols-3 gap-10 mt-16">
-          <Motion
-            v-for="(feature, i) in features"
-            :key="i"
-            :initial="{ opacity: 0, y: 60, scale: 0.9 }"
-            :animate="{ opacity: 1, y: 0, scale: 1 }"
-            :transition="{ delay: i * 0.3, duration: 0.8 }"
-            class="feature-card"
-          >
-            <div class="icon">
-              <font-awesome-icon :icon="feature.icon" />
+        <!-- 2 Large Cards -->
+        <div class="grid md:grid-cols-2 gap-8 mb-8">
+          <Motion :initial="{ opacity: 0, y: 20 }" :animate="{ opacity: 1, y: 0 }" :transition="{ duration: 0.6, delay: 0.1 }">
+            <div class="group bg-white dark:bg-[#121212] rounded-3xl p-10 h-full border border-gray-100 dark:border-[#1a1a1a] shadow-sm hover:shadow-xl dark:hover:shadow-2xl dark:shadow-none transition-all duration-500 hover:-translate-y-1 relative overflow-hidden cursor-pointer">
+              <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-50 dark:bg-emerald-900/10 rounded-full blur-3xl -mr-20 -mt-20 transition-transform group-hover:scale-150 duration-700"></div>
+              <div class="relative z-10">
+                <div class="w-14 h-14 bg-black dark:bg-white text-white dark:text-black rounded-2xl flex items-center justify-center mb-8 shadow-md">
+                  <font-awesome-icon :icon="['fas', 'bolt']" class="text-2xl text-emerald-400 dark:text-emerald-500" />
+                </div>
+                <h3 class="text-2xl font-bold mb-3 text-black dark:text-white">Real-Time Market Data</h3>
+                <p class="text-gray-500 dark:text-gray-400 leading-relaxed text-lg">Stream live prices instantly via Kafka. Analyze trends with precision candlestick charts and advanced technical indicators.</p>
+              </div>
             </div>
-            <h4>{{ feature.title }}</h4>
-            <p>{{ feature.text }}</p>
+          </Motion>
+
+          <Motion :initial="{ opacity: 0, y: 20 }" :animate="{ opacity: 1, y: 0 }" :transition="{ duration: 0.6, delay: 0.2 }">
+            <div class="group bg-white dark:bg-[#121212] rounded-3xl p-10 h-full border border-gray-100 dark:border-[#1a1a1a] shadow-sm hover:shadow-xl dark:hover:shadow-2xl dark:shadow-none transition-all duration-500 hover:-translate-y-1 relative overflow-hidden cursor-pointer">
+              <div class="absolute top-0 right-0 w-64 h-64 bg-blue-50 dark:bg-blue-900/10 rounded-full blur-3xl -mr-20 -mt-20 transition-transform group-hover:scale-150 duration-700"></div>
+              <div class="relative z-10">
+                <div class="w-14 h-14 bg-black dark:bg-white text-white dark:text-black rounded-2xl flex items-center justify-center mb-8 shadow-md">
+                  <font-awesome-icon :icon="['fas', 'brain']" class="text-2xl text-emerald-400 dark:text-emerald-500" />
+                </div>
+                <h3 class="text-2xl font-bold mb-3 text-black dark:text-white">AI Predictions</h3>
+                <p class="text-gray-500 dark:text-gray-400 leading-relaxed text-lg">Utilize cutting-edge machine learning models that forecast stock movements to give you a strategic trading advantage.</p>
+              </div>
+            </div>
+          </Motion>
+        </div>
+
+        <!-- 3 Small Cards -->
+        <div class="grid md:grid-cols-3 gap-8">
+          <Motion :initial="{ opacity: 0, y: 20 }" :animate="{ opacity: 1, y: 0 }" :transition="{ duration: 0.6, delay: 0.3 }">
+            <div class="bg-white dark:bg-[#121212] rounded-3xl p-8 border border-gray-100 dark:border-[#1a1a1a] shadow-sm hover:shadow-lg dark:shadow-none dark:hover:bg-[#171717] transition-all duration-300 hover:-translate-y-1">
+              <div class="w-10 h-10 bg-gray-100 dark:bg-[#1a1a1a] text-black dark:text-white rounded-xl flex items-center justify-center mb-6">
+                <font-awesome-icon :icon="['fas', 'wallet']" class="text-lg" />
+              </div>
+              <h4 class="text-xl font-bold mb-2 text-black dark:text-white">Paper Trading</h4>
+              <p class="text-gray-500 dark:text-gray-400">Practice your strategies risk-free with ₹10,00,000 virtual cash on sign up.</p>
+            </div>
+          </Motion>
+
+          <Motion :initial="{ opacity: 0, y: 20 }" :animate="{ opacity: 1, y: 0 }" :transition="{ duration: 0.6, delay: 0.4 }">
+            <div class="bg-white dark:bg-[#121212] rounded-3xl p-8 border border-gray-100 dark:border-[#1a1a1a] shadow-sm hover:shadow-lg dark:shadow-none dark:hover:bg-[#171717] transition-all duration-300 hover:-translate-y-1">
+              <div class="w-10 h-10 bg-gray-100 dark:bg-[#1a1a1a] text-black dark:text-white rounded-xl flex items-center justify-center mb-6">
+                <font-awesome-icon :icon="['fas', 'bell']" class="text-lg" />
+              </div>
+              <h4 class="text-xl font-bold mb-2 text-black dark:text-white">Smart Alerts</h4>
+              <p class="text-gray-500 dark:text-gray-400">Get instant notifications for price crossings and critical AI movement shifts.</p>
+            </div>
+          </Motion>
+
+          <Motion :initial="{ opacity: 0, y: 20 }" :animate="{ opacity: 1, y: 0 }" :transition="{ duration: 0.6, delay: 0.5 }">
+            <div class="bg-white dark:bg-[#121212] rounded-3xl p-8 border border-gray-100 dark:border-[#1a1a1a] shadow-sm hover:shadow-lg dark:shadow-none dark:hover:bg-[#171717] transition-all duration-300 hover:-translate-y-1">
+              <div class="w-10 h-10 bg-gray-100 dark:bg-[#1a1a1a] text-black dark:text-white rounded-xl flex items-center justify-center mb-6">
+                <font-awesome-icon :icon="['fas', 'chart-pie']" class="text-lg" />
+              </div>
+              <h4 class="text-xl font-bold mb-2 text-black dark:text-white">Portfolio Analytics</h4>
+              <p class="text-gray-500 dark:text-gray-400">Track all your open positions, overall P&L, and strategy win rates over time.</p>
+            </div>
           </Motion>
         </div>
       </div>
     </section>
 
-    <!-- 🦶 Footer -->
-    <footer class="py-6 text-center text-gray-400 border-t border-teal-400/20 bg-transparent">
-      © {{ new Date().getFullYear() }} Eventra Stocks — Predict. Analyze. Grow.
+    <!-- How It Works Section -->
+    <section class="py-32 px-6">
+      <div class="max-w-7xl mx-auto text-center">
+        <Motion :initial="{ opacity: 0, y: 20 }" :animate="{ opacity: 1, y: 0 }" :transition="{ duration: 0.6 }">
+          <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-16 text-black dark:text-white">How it works</h2>
+        </Motion>
+
+        <div class="grid md:grid-cols-3 gap-12 relative">
+          <!-- Connector line -->
+          <div class="hidden md:block absolute top-12 left-[15%] right-[15%] h-0.5 bg-gray-100 dark:bg-[#1a1a1a] -z-10"></div>
+          
+          <Motion :initial="{ opacity: 0, scale: 0.9 }" :animate="{ opacity: 1, scale: 1 }" :transition="{ duration: 0.5, delay: 0.1 }">
+            <div class="flex flex-col items-center">
+              <div class="w-24 h-24 bg-white dark:bg-[#0a0a0a] border-4 border-gray-50 dark:border-[#1a1a1a] rounded-full flex items-center justify-center text-3xl font-black shadow-sm mb-6 relative z-10 text-emerald-500">
+                1
+              </div>
+              <h3 class="text-xl font-bold mb-3 text-black dark:text-white">Search</h3>
+              <p class="text-gray-500 dark:text-gray-400 max-w-xs mx-auto">Find thousands of Indian stocks instantly using our powerful real-time search engine.</p>
+            </div>
+          </Motion>
+
+          <Motion :initial="{ opacity: 0, scale: 0.9 }" :animate="{ opacity: 1, scale: 1 }" :transition="{ duration: 0.5, delay: 0.3 }">
+            <div class="flex flex-col items-center">
+              <div class="w-24 h-24 bg-white dark:bg-[#0a0a0a] border-4 border-gray-50 dark:border-[#1a1a1a] rounded-full flex items-center justify-center text-3xl font-black shadow-sm mb-6 relative z-10 text-emerald-500">
+                2
+              </div>
+              <h3 class="text-xl font-bold mb-3 text-black dark:text-white">Analyze</h3>
+              <p class="text-gray-500 dark:text-gray-400 max-w-xs mx-auto">View AI confidence scores, technical indicators, and historical trends in one clean view.</p>
+            </div>
+          </Motion>
+
+          <Motion :initial="{ opacity: 0, scale: 0.9 }" :animate="{ opacity: 1, scale: 1 }" :transition="{ duration: 0.5, delay: 0.5 }">
+            <div class="flex flex-col items-center">
+              <div class="w-24 h-24 bg-black dark:bg-white border-4 border-gray-50 dark:border-[#1a1a1a] rounded-full flex items-center justify-center text-3xl font-black shadow-xl shadow-black/10 dark:shadow-white/10 mb-6 relative z-10 text-white dark:text-black">
+                3
+              </div>
+              <h3 class="text-xl font-bold mb-3 text-black dark:text-white">Trade</h3>
+              <p class="text-gray-500 dark:text-gray-400 max-w-xs mx-auto">Execute paper trades instantly and track your portfolio's performance securely.</p>
+            </div>
+          </Motion>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-black border-t border-gray-100 dark:border-[#1a1a1a] py-12 px-6 transition-colors">
+      <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+        <div class="flex items-center gap-2">
+          <span class="text-xl font-black tracking-tight text-black dark:text-white">TradeX</span>
+        </div>
+        
+        <div class="text-sm font-medium text-gray-500 dark:text-gray-400 flex gap-6">
+          <router-link to="/dashboard" class="hover:text-black dark:hover:text-white transition-colors">Dashboard</router-link>
+        </div>
+        
+        <div class="text-sm text-gray-400 dark:text-gray-600">
+          © {{ new Date().getFullYear() }} TradeX Platform. All rights reserved.
+        </div>
+      </div>
     </footer>
+
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
+import api from "../api.js";
 import { Motion } from "@motionone/vue";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { fas } from "@fortawesome/free-solid-svg-icons";
+import { useTheme } from "../composables/useTheme.js";
 
 library.add(fas);
 
-const theme = ref(localStorage.getItem("theme") || "dark");
+const { theme, toggleTheme } = useTheme();
 
-const applyTheme = () => {
-  document.documentElement.classList.toggle("dark", theme.value === "dark");
-  localStorage.setItem("theme", theme.value);
-};
-const toggleTheme = () => {
-  theme.value = theme.value === "dark" ? "light" : "dark";
-  applyTheme();
-};
-onMounted(applyTheme);
+const topStocks = ref([]);
+const marketNews = ref([]);
+const loadingStocks = ref(true);
+const loadingNews = ref(true);
 
-const features = [
-  {
-    icon: ["fas", "bolt"],
-    title: "Real-Time Data",
-    text: "Stream live market prices through Kafka — stay ahead of every trend.",
-  },
-  {
-    icon: ["fas", "brain"],
-    title: "AI Predictions",
-    text: "Leverage machine learning to forecast market movements and build confidence.",
-  },
-  {
-    icon: ["fas", "shield-alt"],
-    title: "Secure & Scalable",
-    text: "Powered by Flask, Kafka, and Vue for lightning-fast and reliable performance.",
-  },
-];
+onMounted(async () => {
+  try {
+    const [stocksRes, newsRes] = await Promise.all([
+      api.get("/api/top_stocks").catch(() => ({ data: [] })),
+      api.get("/api/news").catch(() => ({ data: [] }))
+    ]);
+    topStocks.value = stocksRes.data;
+    loadingStocks.value = false;
+    marketNews.value = newsRes.data;
+    loadingNews.value = false;
+  } catch (error) {
+    console.error("Error fetching landing page data", error);
+    loadingStocks.value = false;
+    loadingNews.value = false;
+  }
+});
 </script>
 
-<style>
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap");
+<style scoped>
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
 
-body {
+.font-sans {
   font-family: "Inter", sans-serif;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
 }
 
-/* 🌫 Background Animations */
-.fog {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 60% 50%, rgba(255, 255, 255, 0.1), transparent 60%),
-              radial-gradient(circle at 40% 50%, rgba(255, 255, 255, 0.05), transparent 50%);
-  filter: blur(80px);
-  animation: fogMove 20s ease-in-out infinite alternate;
-  mix-blend-mode: screen;
+/* Chart Animations */
+.chart-line-anim {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: drawLine 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.5s;
 }
 
-.light {
-  position: absolute;
-  right: -10%;
-  top: -10%;
-  width: 80%;
-  height: 120%;
-  background: radial-gradient(circle at 60% 50%, rgba(255, 255, 255, 0.35), rgba(0, 200, 255, 0.15), transparent 80%);
-  filter: blur(160px);
-  animation: lightShift 18s ease-in-out infinite alternate;
-  mix-blend-mode: screen;
+.chart-area-anim {
+  opacity: 0;
+  animation: fadeIn 1s ease-out forwards;
+  animation-delay: 2s;
 }
 
-.light-sweep {
-  position: absolute;
-  top: 0;
-  right: -60%;
-  width: 160%;
-  height: 100%;
-  background: linear-gradient(100deg, transparent 45%, rgba(255, 255, 255, 0.3) 50%, transparent 55%);
-  filter: blur(60px);
-  mix-blend-mode: screen;
-  animation: sweep 12s ease-in-out infinite;
-}
-@keyframes sweep {
-  0% { transform: translateX(80%); opacity: 0.05; }
-  50% { transform: translateX(0%); opacity: 0.4; }
-  100% { transform: translateX(-80%); opacity: 0.05; }
+.chart-dot-anim {
+  opacity: 0;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  animation-delay: 2.5s;
 }
 
-/* ✨ Text Glow */
-@keyframes glow {
-  0%, 100% { text-shadow: 0 0 30px rgba(0,255,200,0.3), 0 0 60px rgba(0,255,255,0.2); }
-  50% { text-shadow: 0 0 50px rgba(0,255,255,0.6), 0 0 80px rgba(0,255,255,0.3); }
-}
-.animate-glow { animation: glow 4s ease-in-out infinite; }
-
-/* 🌟 Feature Cards */
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2.5rem;
-  margin-top: 4rem;
+.chart-pulse-anim {
+  opacity: 0;
+  transform-origin: center;
+  animation: pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+  animation-delay: 2.5s;
 }
 
-.feature-card {
-  position: relative;
-  overflow: hidden;
-  padding: 2.5rem;
-  border-radius: 1.5rem;
-  background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
-  border: 1px solid rgba(0, 255, 200, 0.2);
-  transition: all 0.5s ease;
-  backdrop-filter: blur(10px);
-  text-align: center;
+@keyframes drawLine {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
-.feature-card:hover {
-  transform: translateY(-10px) scale(1.03);
-  border-color: rgba(0, 255, 200, 0.6);
-  box-shadow: 0 15px 50px rgba(0, 255, 200, 0.3), 0 0 80px rgba(0, 255, 255, 0.15);
-  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
 }
 
-.feature-card .icon {
-  font-size: 4rem;
-  margin-bottom: 1.5rem;
-  color: #2dd4bf;
-  text-shadow: 0 0 20px rgba(0, 255, 200, 0.6);
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-.feature-card h4 {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 0.75rem;
-  color: #00e0b8;
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  70% {
+    transform: scale(2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
 }
 
-.feature-card p {
-  font-size: 1.1rem;
-  line-height: 1.8;
-  color: #b0b0b0;
+/* Custom Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d1d5db;
 }
 
-/* Parallax fog */
-.parallax-fog {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 60% 50%, rgba(255,255,255,0.05), transparent 60%),
-              radial-gradient(circle at 40% 60%, rgba(0,255,200,0.04), transparent 70%);
-  filter: blur(80px);
-  animation: parallaxFogMove 25s ease-in-out infinite alternate;
+/* Dark mode scrollbar */
+:global(.dark) ::-webkit-scrollbar-thumb {
+  background: #333;
 }
-@keyframes parallaxFogMove {
-  0% { transform: translate(0%, 0%) scale(1); }
-  100% { transform: translate(-10%, 8%) scale(1.2); }
+:global(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 </style>

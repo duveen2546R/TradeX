@@ -1,30 +1,141 @@
 <template>
-  <div class="terminal" :class="theme === 'dark' ? 'bg-background-dark text-text-primary' : 'bg-gray-100 text-gray-800'">
-    <div id="star-background"><div id="stars1"></div><div id="stars2"></div><div id="stars3"></div></div>
-    <header class="terminal-header">
-      <button @click="$router.push('/dashboard')" class="back">← Dashboard</button>
-      <div v-if="stock" class="market-state" :class="marketStatus.class"><i :class="marketStatus.dotClass"></i>{{ marketStatus.text }}</div>
-    </header>
-    <div v-if="!stock" class="loading"><div class="spinner"></div><p>Loading Terminal…</p></div>
-    <main v-else class="terminal-grid">
-      <section class="chart-panel">
-        <div class="stock-heading"><div><h1>{{ stock.name }}</h1><p>{{ stock.symbol }}</p></div><div><strong>₹{{ stock.current.toFixed(2) }}</strong><span :class="stock.change >= 0 ? 'gain' : 'loss'">{{ stock.change >= 0 ? '▲' : '▼' }} {{ Math.abs(stock.change).toFixed(2) }}%</span></div></div>
-        <div class="analysis-toolbar">
-          <div class="segmented"><button :class="{active: chartMode === 'line'}" @click="chartMode = 'line'">Line</button><button :class="{active: chartMode === 'candle'}" @click="chartMode = 'candle'">Candles</button></div>
-          <label><input v-model="indicators.bollinger" type="checkbox" /> Bollinger Bands</label><label><input v-model="indicators.rsi" type="checkbox" /> RSI (14)</label><label><input v-model="indicators.macd" type="checkbox" /> MACD (12, 26, 9)</label>
+  <div class="page-container" :class="theme === 'light' ? 'light-mode' : 'dark-mode'">
+    <header class="header">
+      <button @click="$router.push('/dashboard')" class="back-btn">← Dashboard</button>
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <button @click="toggleTheme" class="theme-toggle" :title="theme === 'dark' ? 'Switch to light' : 'Switch to dark'">
+          <svg v-if="theme === 'dark'" style="width: 20px; height: 20px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="5" stroke-width="2"/><path stroke-width="2" stroke-linecap="round" d="M12 1v2m0 18v2m11-11h-2M3 12H1m16.36-7.36l-1.41 1.41M6.05 17.95l-1.41 1.41m12.72 0l-1.41-1.41M6.05 6.05L4.64 4.64"/></svg>
+          <svg v-else style="width: 20px; height: 20px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        </button>
+        <div v-if="stock" class="market-indicator" :class="marketStatus.class">
+          <span class="dot" :class="marketStatus.dotClass"></span>
+          {{ marketStatus.text }}
         </div>
-        <div class="chart-wrap"><canvas ref="priceCanvas"></canvas></div>
-        <div v-if="indicators.rsi" class="indicator-pane"><div class="indicator-title">RSI (14) <span>Overbought 70 · Oversold 30</span></div><canvas ref="rsiCanvas"></canvas></div>
-        <div v-if="indicators.macd" class="indicator-pane"><div class="indicator-title">MACD (12, 26, 9)</div><canvas ref="macdCanvas"></canvas></div>
-      </section>
-      <aside class="sidebar">
-        <section v-if="isMarketOpen" class="module"><h2>AI Prediction (5 min)</h2><strong v-if="livePrediction" :class="livePredictionStatus.class">₹{{ livePrediction.toFixed(2) }}</strong><span v-else>Calculating…</span></section>
-        <section v-else class="module"><h2>AI Forecast</h2><p>{{ dailyPrediction || 'Not calculated' }}</p></section>
-        <section class="module"><h2>Paper Trading</h2><div class="trade-controls"><input v-model.number="tradeQuantity" min="1" type="number" aria-label="Share quantity" /><button @click="placePaperOrder('BUY')" class="buy-button">Buy</button><button @click="placePaperOrder('SELL')" class="sell-button">Sell</button></div><p v-if="traderMessage" class="module-note">{{ traderMessage }}</p></section>
-        <section class="module"><h2>Custom Alerts</h2><button @click="enableAiAlert" class="alert-button">AI move ≥ 1.5%</button><div class="price-alert"><select v-model="priceAlertDirection"><option value="below">Below</option><option value="above">Above</option></select><input v-model.number="priceAlertThreshold" type="number" min="0.01" step="0.01" placeholder="Price ₹" /><button @click="enablePriceAlert" class="alert-button">Set</button></div></section>
-        <section class="module"><h2>Performance</h2><div class="data-row"><span>Day's High</span><b>₹{{ stock.dayHigh.toFixed(2) }}</b></div><div class="data-row"><span>Day's Low</span><b>₹{{ stock.dayLow.toFixed(2) }}</b></div><div class="data-row"><span>Prev. Close</span><b>₹{{ stock.previousClose.toFixed(2) }}</b></div></section>
-        <section class="module"><h2>Key Information</h2><div class="data-row"><span>Market Cap</span><b>{{ stock.marketCap ? formatMarketCap(stock.marketCap) : 'N/A' }}</b></div><div class="data-row"><span>Sector</span><b>{{ stock.sector || 'N/A' }}</b></div></section>
-      </aside>
+      </div>
+    </header>
+
+    <div v-if="!stock" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading market data…</p>
+    </div>
+
+    <main v-else class="main-content">
+      <div class="chart-section">
+        <div class="stock-header">
+          <div class="stock-info">
+            <h1 class="stock-name">{{ stock.name }}</h1>
+            <span class="stock-symbol">{{ stock.symbol }}</span>
+          </div>
+          <div class="price-info">
+            <div class="current-price">₹{{ stock.current.toFixed(2) }}</div>
+            <div class="price-change" :class="stock.change >= 0 ? 'badge-positive' : 'badge-negative'">
+              {{ stock.change >= 0 ? '▲' : '▼' }} {{ Math.abs(stock.change).toFixed(2) }}%
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="segmented-control">
+            <button :class="{active: chartMode === 'line'}" @click="chartMode = 'line'">Line</button>
+            <button :class="{active: chartMode === 'candle'}" @click="chartMode = 'candle'">Candles</button>
+          </div>
+          <div class="indicator-toggles">
+            <label class="toggle-label"><input v-model="indicators.bollinger" type="checkbox" /> Bollinger</label>
+            <label class="toggle-label"><input v-model="indicators.rsi" type="checkbox" /> RSI</label>
+            <label class="toggle-label"><input v-model="indicators.macd" type="checkbox" /> MACD</label>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <canvas ref="priceCanvas"></canvas>
+        </div>
+
+        <div v-if="indicators.rsi" class="indicator-container">
+          <div class="indicator-header">RSI (14) <span class="indicator-meta">Overbought 70 · Oversold 30</span></div>
+          <canvas ref="rsiCanvas"></canvas>
+        </div>
+        <div v-if="indicators.macd" class="indicator-container">
+          <div class="indicator-header">MACD (12, 26, 9)</div>
+          <canvas ref="macdCanvas"></canvas>
+        </div>
+
+        <div class="panel news-panel">
+          <h2 class="panel-title">Latest News</h2>
+          <div class="news-grid">
+            <a v-for="(n, i) in stockNews" :key="i" :href="n.link" target="_blank" class="news-card">
+              <div class="news-meta">{{ n.provider }} &middot; {{ new Date(n.pubDate).toLocaleDateString() }}</div>
+              <h3 class="news-title">{{ n.title }}</h3>
+              <p class="news-summary">{{ n.summary }}</p>
+            </a>
+          </div>
+          <p v-if="stockNews.length === 0" class="empty-msg">No news available at the moment.</p>
+        </div>
+      </div>
+
+      <div class="sidebar">
+        <div v-if="isMarketOpen" class="panel">
+          <h2 class="panel-title">AI Prediction (5 min)</h2>
+          <div v-if="livePrediction" class="prediction-value" :class="livePredictionStatus.class">
+            ₹{{ livePrediction.toFixed(2) }}
+          </div>
+          <div v-else class="loading-text">Calculating…</div>
+        </div>
+        <div v-else class="panel">
+          <h2 class="panel-title">AI Forecast</h2>
+          <div class="forecast-value">{{ dailyPrediction || 'Not calculated' }}</div>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">Paper Trading</h2>
+          <div class="trade-form">
+            <input v-model.number="tradeQuantity" min="1" type="number" class="qty-input" aria-label="Share quantity" />
+            <button @click="placePaperOrder('BUY')" class="btn-buy">Buy</button>
+            <button @click="placePaperOrder('SELL')" class="btn-sell">Sell</button>
+          </div>
+          <p v-if="traderMessage" class="status-msg">{{ traderMessage }}</p>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">Custom Alerts</h2>
+          <button @click="enableAiAlert" class="btn-alert-ai">AI move ≥ 1.5%</button>
+          <div class="alert-form">
+            <select v-model="priceAlertDirection" class="alert-select">
+              <option value="below">Below</option>
+              <option value="above">Above</option>
+            </select>
+            <input v-model.number="priceAlertThreshold" type="number" min="0.01" step="0.01" placeholder="Price ₹" class="alert-input" />
+            <button @click="enablePriceAlert" class="btn-alert-set">Set</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">Performance</h2>
+          <div class="key-value-row">
+            <span class="kv-label">Day's High</span>
+            <span class="kv-value">₹{{ stock.dayHigh.toFixed(2) }}</span>
+          </div>
+          <div class="key-value-row">
+            <span class="kv-label">Day's Low</span>
+            <span class="kv-value">₹{{ stock.dayLow.toFixed(2) }}</span>
+          </div>
+          <div class="key-value-row">
+            <span class="kv-label">Prev. Close</span>
+            <span class="kv-value">₹{{ stock.previousClose.toFixed(2) }}</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">Key Information</h2>
+          <div class="key-value-row">
+            <span class="kv-label">Market Cap</span>
+            <span class="kv-value">{{ stock.marketCap ? formatMarketCap(stock.marketCap) : 'N/A' }}</span>
+          </div>
+          <div class="key-value-row">
+            <span class="kv-label">Sector</span>
+            <span class="kv-value">{{ stock.sector || 'N/A' }}</span>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -37,9 +148,13 @@ import { CandlestickController, CandlestickElement } from "chartjs-chart-financi
 import "chartjs-adapter-date-fns";
 import { useRoute } from "vue-router";
 import api from "../api";
+import { useTheme } from "../composables/useTheme";
 
 Chart.register(annotationPlugin, CandlestickController, CandlestickElement);
-const theme = ref("dark"); const route = useRoute(); const symbol = route.params.symbol; const stock = ref(null); const isMarketOpen = ref(false); const livePrediction = ref(null); const dailyPrediction = ref(null); const priceStreamStatus = ref("disconnected");
+const { theme, toggleTheme } = useTheme(); const route = useRoute(); const symbol = route.params.symbol; const stock = ref(null);
+const stockNews = ref([]);
+const dailyPrediction = ref(null);
+const livePrediction = ref(null); const priceStreamStatus = ref("disconnected");
 const chartMode = ref("line"); const indicators = reactive({ rsi: false, macd: false, bollinger: false }); const priceCanvas = ref(null); const rsiCanvas = ref(null); const macdCanvas = ref(null);
 const tradeQuantity = ref(1); const priceAlertDirection = ref("below"); const priceAlertThreshold = ref(null); const traderMessage = ref("");
 let priceChart; let rsiChart; let macdChart; let priceEventSource; let predictionEventSource; let candles = [];
@@ -49,40 +164,528 @@ const marketStatus = computed(() => { if (!isMarketOpen.value) return { class: "
 const checkIfMarketIsOpen = () => { const now = new Date(); const day = now.getUTCDay(); const minutes = now.getUTCHours() * 60 + now.getUTCMinutes(); return day > 0 && day < 6 && minutes >= 225 && minutes <= 600; };
 const closes = () => candles.map((item) => item.close);
 const asPoints = (values) => values.map((value, index) => value == null ? null : ({ x: candles[index].x, y: value }));
-const chartColors = { teal: "#2dd4bf", red: "#f87171", grid: "rgba(148, 163, 184, .13)", text: "#94a3b8" };
+const chartColors = computed(() => theme.value === 'dark' 
+  ? { teal: "#10b981", red: "#ef4444", grid: "rgba(255, 255, 255, 0.06)", text: "#a3a3a3" }
+  : { teal: "#10b981", red: "#ef4444", grid: "rgba(0, 0, 0, 0.06)", text: "#737373" });
 
 function simpleMovingAverage(values, period) { return values.map((_, index) => index < period - 1 ? null : values.slice(index - period + 1, index + 1).reduce((total, value) => total + value, 0) / period); }
 function ema(values, period) { const output = Array(values.length).fill(null); const multiplier = 2 / (period + 1); let seed = []; let previous = null; values.forEach((value, index) => { if (value == null) return; if (previous == null) { seed.push(value); if (seed.length === period) { previous = seed.reduce((sum, item) => sum + item, 0) / period; output[index] = previous; } } else { previous = (value - previous) * multiplier + previous; output[index] = previous; } }); return output; }
 function rsi(values, period = 14) { const output = Array(values.length).fill(null); if (values.length <= period) return output; let gains = 0; let losses = 0; for (let index = 1; index <= period; index += 1) { const diff = values[index] - values[index - 1]; gains += Math.max(diff, 0); losses += Math.max(-diff, 0); } let averageGain = gains / period; let averageLoss = losses / period; output[period] = averageLoss === 0 ? 100 : 100 - 100 / (1 + averageGain / averageLoss); for (let index = period + 1; index < values.length; index += 1) { const diff = values[index] - values[index - 1]; averageGain = (averageGain * (period - 1) + Math.max(diff, 0)) / period; averageLoss = (averageLoss * (period - 1) + Math.max(-diff, 0)) / period; output[index] = averageLoss === 0 ? 100 : 100 - 100 / (1 + averageGain / averageLoss); } return output; }
 function bollinger(values, period = 20) { const middle = simpleMovingAverage(values, period); return { middle, upper: middle.map((mean, index) => { if (mean == null) return null; const variance = values.slice(index - period + 1, index + 1).reduce((sum, value) => sum + (value - mean) ** 2, 0) / period; return mean + 2 * Math.sqrt(variance); }), lower: middle.map((mean, index) => { if (mean == null) return null; const variance = values.slice(index - period + 1, index + 1).reduce((sum, value) => sum + (value - mean) ** 2, 0) / period; return mean - 2 * Math.sqrt(variance); }) }; }
 function macd(values) { const line = ema(values, 12).map((fast, index) => fast == null || ema(values, 26)[index] == null ? null : fast - ema(values, 26)[index]); const signal = ema(line, 9); return { line, signal, histogram: line.map((item, index) => item == null || signal[index] == null ? null : item - signal[index]) }; }
-function commonOptions() { return { responsive: true, maintainAspectRatio: false, animation: { duration: 250 }, interaction: { mode: "index", intersect: false }, plugins: { legend: { labels: { color: chartColors.text, boxWidth: 12 } }, tooltip: { backgroundColor: "rgba(2, 6, 23, .94)", titleColor: "#fff", bodyColor: "#e2e8f0" } }, scales: { x: { type: "time", time: { unit: "minute", tooltipFormat: "HH:mm" }, ticks: { color: chartColors.text, autoSkip: true, maxTicksLimit: 10 }, grid: { color: chartColors.grid } }, y: { position: "right", ticks: { color: chartColors.text, callback: (value) => `₹${value}` }, grid: { color: chartColors.grid } } } }; }
-function renderPriceChart() { if (!priceCanvas.value || !candles.length) return; priceChart?.destroy(); const options = commonOptions(); const data = { datasets: [] }; const volumes = candles.map((item) => item.volume || 0); const rising = stock.value.change >= 0; if (chartMode.value === "candle") { data.datasets.push({ type: "candlestick", label: "OHLC", data: candles.map(({ x, open, high, low, close }) => ({ x, o: open, h: high, l: low, c: close })), color: { up: "#2dd4bf", down: "#f87171", unchanged: "#94a3b8" }, borderColor: { up: "#2dd4bf", down: "#f87171", unchanged: "#94a3b8" }, yAxisID: "y" }); } else { data.datasets.push({ type: "line", label: "Price", data: asPoints(closes()), borderColor: rising ? chartColors.teal : chartColors.red, backgroundColor: rising ? "rgba(45,212,191,.10)" : "rgba(248,113,113,.10)", fill: true, tension: .15, pointRadius: 0, borderWidth: 2, yAxisID: "y" }); }
+function commonOptions() { return { responsive: true, maintainAspectRatio: false, animation: { duration: 250 }, interaction: { mode: "index", intersect: false }, plugins: { legend: { labels: { color: chartColors.value.text, boxWidth: 12 } }, tooltip: { backgroundColor: theme.value === 'dark' ? "rgba(0, 0, 0, 0.95)" : "rgba(255, 255, 255, 0.95)", titleColor: theme.value === 'dark' ? "#f9fafb" : "#111827", bodyColor: theme.value === 'dark' ? "#d1d5db" : "#374151" } }, scales: { x: { type: "time", time: { unit: "minute", tooltipFormat: "HH:mm" }, ticks: { color: chartColors.value.text, autoSkip: true, maxTicksLimit: 10 }, grid: { color: chartColors.value.grid } }, y: { position: "right", ticks: { color: chartColors.value.text, callback: (value) => `₹${value}` }, grid: { color: chartColors.value.grid } } } }; }
+function renderPriceChart() { if (!priceCanvas.value || !candles.length) return; priceChart?.destroy(); const options = commonOptions(); const data = { datasets: [] }; const volumes = candles.map((item) => item.volume || 0); const rising = stock.value.change >= 0; if (chartMode.value === "candle") { data.datasets.push({ type: "candlestick", label: "OHLC", data: candles.map(({ x, open, high, low, close }) => ({ x, o: open, h: high, l: low, c: close })), color: { up: "#2dd4bf", down: "#f87171", unchanged: "#94a3b8" }, borderColor: { up: "#2dd4bf", down: "#f87171", unchanged: "#94a3b8" }, yAxisID: "y" }); } else { data.datasets.push({ type: "line", label: "Price", data: asPoints(closes()), borderColor: rising ? chartColors.value.teal : chartColors.value.red, backgroundColor: rising ? "rgba(45,212,191,.10)" : "rgba(248,113,113,.10)", fill: true, tension: .15, pointRadius: 0, borderWidth: 2, yAxisID: "y" }); }
   if (indicators.bollinger) { const bands = bollinger(closes()); data.datasets.push({ type: "line", label: "Bollinger upper", data: asPoints(bands.upper), borderColor: "rgba(96,165,250,.8)", borderDash: [5, 4], pointRadius: 0, borderWidth: 1, yAxisID: "y" }, { type: "line", label: "Bollinger mid", data: asPoints(bands.middle), borderColor: "rgba(148,163,184,.7)", pointRadius: 0, borderWidth: 1, yAxisID: "y" }, { type: "line", label: "Bollinger lower", data: asPoints(bands.lower), borderColor: "rgba(96,165,250,.8)", borderDash: [5, 4], pointRadius: 0, borderWidth: 1, yAxisID: "y" }); }
   data.datasets.push({ type: "bar", label: "Volume", data: candles.map((item) => ({ x: item.x, y: item.volume || 0 })), yAxisID: "volume", backgroundColor: candles.map((item) => item.close >= item.open ? "rgba(45,212,191,.30)" : "rgba(248,113,113,.30)"), borderWidth: 0, barPercentage: .9, categoryPercentage: .92 });
-  options.scales.volume = { display: false, position: "left", beginAtZero: true, suggestedMax: Math.max(...volumes, 1) * 4, grid: { display: false } }; options.plugins.annotation = { annotations: { previousClose: { type: "line", yMin: stock.value.previousClose, yMax: stock.value.previousClose, borderColor: "rgba(148,163,184,.55)", borderDash: [5, 4], borderWidth: 1 } } }; options.plugins.tooltip.callbacks = { label(context) { if (context.dataset.type === "candlestick") { const raw = context.raw; return `O ₹${raw.o.toFixed(2)}  H ₹${raw.h.toFixed(2)}  L ₹${raw.l.toFixed(2)}  C ₹${raw.c.toFixed(2)}`; } if (context.dataset.label === "Volume") return `Volume: ${Number(context.raw).toLocaleString("en-IN")}`; return `${context.dataset.label}: ₹${Number(context.raw).toFixed(2)}`; } }; priceChart = new Chart(priceCanvas.value, { type: chartMode.value === "candle" ? "candlestick" : "line", data, options }); }
-function renderRsi() { if (!indicators.rsi || !rsiCanvas.value) return; rsiChart?.destroy(); const options = commonOptions(); options.scales.y = { min: 0, max: 100, position: "right", ticks: { color: chartColors.text }, grid: { color: chartColors.grid } }; options.plugins.legend.display = false; options.plugins.annotation = { annotations: { high: { type: "line", yMin: 70, yMax: 70, borderColor: "rgba(248,113,113,.75)", borderDash: [5,4] }, low: { type: "line", yMin: 30, yMax: 30, borderColor: "rgba(45,212,191,.75)", borderDash: [5,4] } } }; rsiChart = new Chart(rsiCanvas.value, { type: "line", data: { datasets: [{ label: "RSI", data: asPoints(rsi(closes())), borderColor: "#a78bfa", pointRadius: 0, tension: .15, borderWidth: 1.5 }] }, options }); }
+  options.scales.volume = { display: false, position: "left", beginAtZero: true, suggestedMax: Math.max(...volumes, 1) * 4, grid: { display: false } }; options.plugins.annotation = { annotations: { previousClose: { type: "line", yMin: stock.value.previousClose, yMax: stock.value.previousClose, borderColor: "rgba(148,163,184,.55)", borderDash: [5, 4], borderWidth: 1 } } }; options.plugins.tooltip.callbacks = { label(context) { if (context.dataset.type === "candlestick") { const raw = context.raw; return `O ₹${raw.o.toFixed(2)}  H ₹${raw.h.toFixed(2)}  L ₹${raw.l.toFixed(2)}  C ₹${raw.c.toFixed(2)}`; } const val = context.parsed.y; if (context.dataset.label === "Volume") return `Volume: ${Number(val).toLocaleString("en-IN")}`; return `${context.dataset.label}: ₹${Number(val).toFixed(2)}`; } }; priceChart = new Chart(priceCanvas.value, { type: chartMode.value === "candle" ? "candlestick" : "line", data, options }); }
+function renderRsi() { if (!indicators.rsi || !rsiCanvas.value) return; rsiChart?.destroy(); const options = commonOptions(); options.scales.y = { min: 0, max: 100, position: "right", ticks: { color: chartColors.value.text }, grid: { color: chartColors.value.grid } }; options.plugins.legend.display = false; options.plugins.annotation = { annotations: { high: { type: "line", yMin: 70, yMax: 70, borderColor: "rgba(248,113,113,.75)", borderDash: [5,4] }, low: { type: "line", yMin: 30, yMax: 30, borderColor: "rgba(45,212,191,.75)", borderDash: [5,4] } } }; rsiChart = new Chart(rsiCanvas.value, { type: "line", data: { datasets: [{ label: "RSI", data: asPoints(rsi(closes())), borderColor: "#a78bfa", pointRadius: 0, tension: .15, borderWidth: 1.5 }] }, options }); }
 function renderMacd() { if (!indicators.macd || !macdCanvas.value) return; macdChart?.destroy(); const values = macd(closes()); const options = commonOptions(); options.scales.y.ticks.callback = (value) => value.toFixed(2); options.plugins.annotation = { annotations: { zero: { type: "line", yMin: 0, yMax: 0, borderColor: "rgba(148,163,184,.5)" } } }; macdChart = new Chart(macdCanvas.value, { type: "bar", data: { datasets: [{ type: "bar", label: "Histogram", data: asPoints(values.histogram), backgroundColor: values.histogram.map((value) => value >= 0 ? "rgba(45,212,191,.55)" : "rgba(248,113,113,.55)"), borderWidth: 0 }, { type: "line", label: "MACD", data: asPoints(values.line), borderColor: "#60a5fa", pointRadius: 0, borderWidth: 1.5 }, { type: "line", label: "Signal", data: asPoints(values.signal), borderColor: "#fbbf24", pointRadius: 0, borderWidth: 1.5 }] }, options }); }
 function renderCharts() { renderPriceChart(); nextTick(() => { renderRsi(); renderMacd(); }); }
 function normaliseCandle(point) { const close = Number(point.close ?? point.price); return { time: point.time || point.date, x: Date.parse(point.timestamp) || Date.now(), open: Number(point.open ?? close), high: Number(point.high ?? close), low: Number(point.low ?? close), close, volume: Number(point.volume || 0) }; }
-const fetchStock = async () => { isMarketOpen.value = checkIfMarketIsOpen(); const endpoint = isMarketOpen.value ? `/stock/${symbol}` : `/stock_history/${symbol}`; try { const { data } = await api.get(endpoint); stock.value = data; candles = (data.intraday_trend || []).map(normaliseCandle); await nextTick(); renderCharts(); if (isMarketOpen.value) { startPriceStream(); startLivePredictionStream(); } else fetchDailyPrediction(); } catch (error) { console.error("Could not load stock", error); stock.value = { name: "Data not available", symbol, current: 0, change: 0, dayHigh: 0, dayLow: 0, previousClose: 0, summary: "Could not load profile." }; } };
-const fetchDailyPrediction = async () => { try { dailyPrediction.value = (await api.get(`/prediction/daily/${symbol}`)).data.outlook; } catch (_) {} };
+const fetchStock = async () => {
+    isMarketOpen.value = checkIfMarketIsOpen();
+    const endpoint = isMarketOpen.value ? `/stock/${symbol}` : `/stock_history/${symbol}`;
+    try {
+      const [stockRes, dailyRes, newsRes] = await Promise.all([
+        api.get(endpoint),
+        api.get(`/prediction/daily/${symbol}`).catch(() => ({ data: { outlook: null } })),
+        api.get(`/api/news/${symbol}`).catch(() => ({ data: [] }))
+      ]);
+      stock.value = stockRes.data;
+      candles = (stockRes.data.intraday_trend || []).map(normaliseCandle);
+      dailyPrediction.value = dailyRes.data.outlook;
+      stockNews.value = newsRes.data;
+      await nextTick();
+      renderCharts();
+      if (isMarketOpen.value) { startPriceStream(); startLivePredictionStream(); }
+    } catch (error) {
+      console.error("Could not load stock", error);
+      stock.value = { name: "Data not available", symbol, current: 0, change: 0, dayHigh: 0, dayLow: 0, previousClose: 0, summary: "Could not load profile." };
+    }
+  };
 function startPriceStream() { priceEventSource?.close(); priceEventSource = new EventSource(`${api.defaults.baseURL}/stream/${symbol}`); priceStreamStatus.value = "connecting"; priceEventSource.onopen = () => { priceStreamStatus.value = "connected"; }; priceEventSource.onerror = () => { priceStreamStatus.value = "error"; }; priceEventSource.onmessage = (event) => { const tick = JSON.parse(event.data); const tickDate = tick.timestamp ? new Date(tick.timestamp) : new Date(); const time = tickDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); const close = Number(tick.price); stock.value.current = close; stock.value.change = stock.value.previousClose ? ((close - stock.value.previousClose) / stock.value.previousClose) * 100 : 0; const last = candles.at(-1); if (last && last.time === time) { last.high = Math.max(last.high, close); last.low = Math.min(last.low, close); last.close = close; } else candles.push({ time, x: tickDate.getTime(), open: last?.close ?? close, high: close, low: close, close, volume: 0 }); renderCharts(); }; }
 function startLivePredictionStream() { predictionEventSource?.close(); predictionEventSource = new EventSource(`${api.defaults.baseURL}/stream/prediction/${symbol}`); predictionEventSource.onmessage = (event) => { const data = JSON.parse(event.data); if (data?.prediction) livePrediction.value = data.prediction; }; }
 const formatMarketCap = (cap) => cap >= 1e12 ? `₹${(cap / 1e12).toFixed(2)}T` : cap >= 1e9 ? `₹${(cap / 1e9).toFixed(2)}B` : `₹${(cap / 1e6).toFixed(2)}M`;
 const placePaperOrder = async (side) => { try { const result = await api.post("/api/orders", { symbol, side, quantity: tradeQuantity.value }); traderMessage.value = `${result.data.side} filled at ₹${(result.data.price_paise / 100).toFixed(2)}.`; } catch (error) { traderMessage.value = error.response?.data?.error || "Sign in to place paper orders."; } };
 const enableAiAlert = async () => { try { await api.post("/api/alerts", { symbol, kind: "ai_movement" }); traderMessage.value = "AI alert enabled."; } catch (error) { traderMessage.value = error.response?.data?.error || "Sign in to create alerts."; } };
 const enablePriceAlert = async () => { try { await api.post("/api/alerts", { symbol, kind: "price", direction: priceAlertDirection.value, threshold: priceAlertThreshold.value }); traderMessage.value = "Price alert enabled."; } catch (error) { traderMessage.value = error.response?.data?.error || "Enter a valid price and sign in."; } };
-watch([chartMode, () => indicators.rsi, () => indicators.macd, () => indicators.bollinger], renderCharts);
+watch([chartMode, theme, () => indicators.rsi, () => indicators.macd, () => indicators.bollinger], renderCharts);
 onMounted(() => { fetchStock(); api.post(`/predict/start/${symbol}`); api.post(`/train/on_demand/${symbol}`); });
 onUnmounted(() => { priceEventSource?.close(); predictionEventSource?.close(); priceChart?.destroy(); rsiChart?.destroy(); macdChart?.destroy(); });
 </script>
 
-<style>
-:root { --background-dark:#0A0E13; --background-sidebar:#07090D; --text-primary:#E5E7EB; --text-secondary:#9CA3AF; --accent:#2DD4BF; --red:#F87171; }.terminal { min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; position:relative; }.bg-background-dark { background-color:var(--background-dark); }.text-text-primary { color:var(--text-primary); }.terminal-header { height:56px; display:flex; justify-content:space-between; align-items:center; padding:0 18px; border-bottom:1px solid #1f2937; background:#0a0e13dd; position:sticky; top:0; z-index:20; backdrop-filter:blur(12px); }.back { border:0; color:#cbd5e1; background:transparent; cursor:pointer; font-weight:700; }.market-state { border-radius:999px; padding:6px 10px; font-size:.78rem; font-weight:700; }.market-state.live { color:#5eead4; background:#134e4a66; }.market-state.closed { color:#94a3b8; background:#33415566; }.market-state.warning { color:#fde68a; background:#713f1266; }.market-state.connecting { color:#93c5fd; background:#1e3a8a66; }.dot { width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:6px; }.green { background:#2dd4bf; }.gray { background:#94a3b8; }.yellow { background:#fbbf24; }.blue { background:#60a5fa; }.loading { min-height:70vh; display:grid; place-content:center; color:#94a3b8; text-align:center; }.spinner { width:34px; height:34px; border:3px solid #2dd4bf55; border-top-color:#2dd4bf; border-radius:50%; animation:spin .8s linear infinite; margin:auto; }@keyframes spin {to{transform:rotate(360deg)}}.terminal-grid { display:grid; grid-template-columns:minmax(0,4fr) minmax(300px,1fr); min-height:calc(100vh - 56px); }.chart-panel { padding:24px; min-width:0; }.stock-heading { display:flex; justify-content:space-between; gap:20px; align-items:flex-end; margin-bottom:20px; }.stock-heading h1 { margin:0; font-size:clamp(2rem,4vw,4.2rem); letter-spacing:-.05em; }.stock-heading p { margin:5px 0 0; font-family:monospace; color:#94a3b8; }.stock-heading > div:last-child { display:grid; text-align:right; }.stock-heading strong { font:700 clamp(2rem,4vw,4rem) monospace; }.gain { color:#2dd4bf; }.loss { color:#f87171; }.muted { color:#94a3b8; }.analysis-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:12px; color:#cbd5e1; font-size:.84rem; }.analysis-toolbar label { display:flex; align-items:center; gap:5px; cursor:pointer; }.segmented { display:flex; border:1px solid #334155; border-radius:8px; overflow:hidden; }.segmented button { border:0; padding:7px 11px; color:#cbd5e1; background:#111827; cursor:pointer; }.segmented button.active { color:#042f2e; background:#2dd4bf; font-weight:800; }.chart-wrap { height:clamp(310px,52vh,590px); border:1px solid #1f2937; border-radius:12px; padding:10px; background:#080d13bb; }.indicator-pane { height:185px; margin-top:14px; border:1px solid #1f2937; border-radius:12px; padding:10px; background:#080d13bb; }.indicator-title { margin:0 0 4px; color:#e2e8f0; font-size:.82rem; font-weight:700; }.indicator-title span { color:#94a3b8; font-weight:400; }.sidebar { border-left:1px solid #1f2937; background:#07090dcc; }.module { padding:18px; border-bottom:1px solid #1f2937; }.module h2 { margin:0 0 12px; color:#94a3b8; font-size:.76rem; letter-spacing:.08em; text-transform:uppercase; }.module > strong { font:700 1.5rem monospace; }.module p { margin:0; }.module-note { margin-top:8px!important; color:#94a3b8; font-size:.76rem; }.trade-controls,.price-alert { display:flex; gap:6px; }.trade-controls input,.price-alert input,.price-alert select { min-width:0; width:100%; border:1px solid #334155; border-radius:6px; padding:7px; color:#e5e7eb; background:#101827; }.buy-button,.sell-button,.alert-button { border:0; border-radius:6px; padding:7px 9px; cursor:pointer; font-weight:800; }.buy-button { color:#042f2e; background:#2dd4bf; }.sell-button { color:#450a0a; background:#f87171; }.alert-button { width:100%; margin-bottom:7px; color:#cffafe; background:#164e63; }.data-row { display:flex; justify-content:space-between; gap:15px; margin:9px 0; color:#94a3b8; font-size:.86rem; }.data-row b { color:#e2e8f0; text-align:right; }#star-background { position:fixed; inset:0; pointer-events:none; z-index:0; background:radial-gradient(circle at 20% 10%,#164e6333,transparent 30%); }.terminal-header,.terminal-grid { position:relative; z-index:1; }@media(max-width:900px){.terminal-grid{grid-template-columns:1fr}.sidebar{border-left:0;border-top:1px solid #1f2937}.chart-panel{padding:15px}.stock-heading{align-items:flex-start;flex-direction:column}.stock-heading>div:last-child{text-align:left}.chart-wrap{height:380px}}
-</style>
+<style scoped>
+:root {
+  --bg-color: #ffffff;
+  --bg-secondary: #f9fafb;
+  --border-color: #e5e7eb;
+  --text-main: #111827;
+  --text-muted: #6b7280;
+  --primary: #000000;
+  --emerald: #10b981;
+  --emerald-bg: #dcfce7;
+  --emerald-text: #166534;
+  --red: #ef4444;
+  --red-bg: #fef2f2;
+  --red-text: #991b1b;
+}
 
-<style>
-/* Align the advanced terminal controls with the original TradeX glass/aurora system. */
-.terminal { background:#0b0f13!important; font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important; }.terminal::before,.terminal::after{content:"";position:fixed;z-index:0;pointer-events:none;border-radius:999px;filter:blur(95px);opacity:.22;animation:terminal-drift 22s ease-in-out infinite alternate}.terminal::before{width:32rem;height:32rem;top:-18rem;left:-13rem;background:#14b8a6}.terminal::after{width:27rem;height:27rem;right:-13rem;bottom:-13rem;background:#2563eb;animation-delay:-9s}@keyframes terminal-drift{to{transform:translate(90px,50px) scale(1.1)}}#star-background{background:radial-gradient(circle at 50% 0,#0f394455,transparent 44%)!important}.terminal-header{max-width:1440px;margin:auto;border:1px solid #ffffff0e!important;border-radius:0 0 20px 20px;background:#0b0f13a8!important;box-shadow:0 12px 30px #0004}.back{padding:8px 12px;border-radius:999px!important;color:#d1fae5!important;transition:.2s}.back:hover{background:#2dd4bf18!important;color:#5eead4!important}.market-state{border:1px solid #ffffff12;box-shadow:inset 0 1px #ffffff12}.chart-panel{padding:28px!important}.stock-heading h1{background:linear-gradient(90deg,#5eead4,#67e8f9,#e2e8f0);background-clip:text;-webkit-background-clip:text;color:transparent;text-shadow:none}.stock-heading strong{color:#f8fafc;text-shadow:0 0 28px #2dd4bf20}.analysis-toolbar{padding:10px 13px;border:1px solid #334155aa;border-radius:18px;background:#161b22aa;box-shadow:inset 0 1px #ffffff0d;backdrop-filter:blur(14px)}.analysis-toolbar label{padding:6px 8px;border-radius:999px;transition:.2s}.analysis-toolbar label:hover{background:#2dd4bf12;color:#5eead4}.analysis-toolbar input{accent-color:#2dd4bf}.segmented{border-color:#365261!important;background:#09121a}.segmented button{background:transparent!important;border-radius:0!important}.segmented button.active{background:linear-gradient(90deg,#14b8a6,#22d3ee)!important;box-shadow:0 3px 12px #14b8a655}.chart-wrap,.indicator-pane{border-color:#334155aa!important;border-radius:20px!important;background:linear-gradient(145deg,#161b22bd,#09121ad4)!important;box-shadow:0 20px 38px #0005,inset 0 1px #ffffff0d;backdrop-filter:blur(18px)}.indicator-title{color:#d1fae5!important}.sidebar{margin:18px 18px 18px 0;border:1px solid #334155aa!important;border-radius:24px;background:linear-gradient(145deg,#161b22bd,#09121ad4)!important;box-shadow:0 18px 42px #0006,inset 0 1px #ffffff0d;backdrop-filter:blur(18px);overflow:hidden}.module{border-bottom-color:#33415588!important}.module h2{color:#5eead4!important}.trade-controls input,.price-alert input,.price-alert select{border-color:#334155!important;border-radius:999px!important;background:#09121acc!important}.trade-controls input:focus,.price-alert input:focus,.price-alert select:focus{outline:0;border-color:#2dd4bf!important;box-shadow:0 0 0 3px #2dd4bf1c}.buy-button,.alert-button{background:linear-gradient(90deg,#14b8a6,#22d3ee)!important;color:#042f2e!important;box-shadow:0 6px 16px #14b8a633}.sell-button{background:linear-gradient(90deg,#fb7185,#f87171)!important}.buy-button:hover,.sell-button:hover,.alert-button:hover{filter:brightness(1.1);transform:translateY(-1px)}@media(max-width:900px){.sidebar{margin:0 15px 18px}.chart-panel{padding:15px!important}.terminal-header{margin:0 10px}.analysis-toolbar{gap:6px}}
+.dark-mode {
+  --bg-color: #000000;
+  --bg-secondary: #0a0a0a;
+  --border-color: #1a1a1a;
+  --text-main: #f9fafb;
+  --text-muted: #9ca3af;
+  --primary: #ffffff;
+  --emerald-bg: rgba(16, 185, 129, 0.2);
+  --emerald-text: #34d399;
+  --red-bg: rgba(239, 68, 68, 0.2);
+  --red-text: #f87171;
+}
+
+.page-container {
+  min-height: 100vh;
+  background-color: var(--bg-secondary);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  height: 64px;
+  background-color: var(--bg-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  transition: all 0.2s;
+  color: var(--text-muted);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.theme-toggle:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-main);
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 0;
+  transition: color 0.2s;
+}
+
+.back-btn:hover {
+  color: var(--text-main);
+}
+
+.market-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.market-indicator.live { color: var(--emerald-text); }
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #d1d5db;
+}
+
+.dot.green { background-color: var(--emerald); }
+.dot.gray { background-color: #9ca3af; }
+.dot.yellow { background-color: #f59e0b; }
+.dot.blue { background-color: #3b82f6; }
+
+.main-content {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 32px;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 32px 48px;
+  align-items: start;
+}
+
+.chart-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.stock-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.stock-name {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 4px 0;
+  letter-spacing: -0.02em;
+}
+
+.stock-symbol {
+  font-size: 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--text-muted);
+}
+
+.price-info {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.current-price {
+  font-size: 32px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  line-height: 1;
+}
+
+.price-change {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.badge-positive {
+  background-color: var(--emerald-bg);
+  color: var(--emerald-text);
+}
+
+.badge-negative {
+  background-color: var(--red-bg);
+  color: var(--red-text);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: center;
+}
+
+.segmented-control {
+  display: flex;
+  background-color: var(--bg-secondary);
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.segmented-control button {
+  border: none;
+  background: transparent;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.segmented-control button.active {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.indicator-toggles {
+  display: flex;
+  gap: 16px;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.toggle-label input {
+  accent-color: var(--text-main);
+}
+
+.chart-container {
+  height: 500px;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.indicator-container {
+  height: 200px;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.indicator-header {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.indicator-meta {
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.news-panel {
+  margin-top: 24px;
+}
+
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.news-card {
+  display: block;
+  padding: 16px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.news-card:hover {
+  background-color: var(--bg-color);
+  border-color: var(--emerald);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.news-meta {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--emerald-text);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.news-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 8px 0;
+  line-height: 1.3;
+}
+
+.news-summary {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.empty-msg {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.panel-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 16px 0;
+}
+
+.prediction-value, .forecast-value {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.prediction-value.gain { color: var(--emerald); }
+.prediction-value.loss { color: var(--red); }
+.prediction-value.muted { color: var(--text-main); }
+
+.loading-text {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.trade-form, .alert-form {
+  display: flex;
+  gap: 8px;
+}
+
+.qty-input, .alert-input, .alert-select {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  background: var(--bg-color);
+  color: var(--text-main);
+}
+
+.qty-input:focus, .alert-input:focus, .alert-select:focus {
+  outline: none;
+  border-color: var(--text-main);
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+}
+
+.btn-buy, .btn-sell, .btn-alert-set, .btn-alert-ai {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #ffffff;
+  transition: opacity 0.2s;
+}
+
+.btn-buy:hover, .btn-sell:hover, .btn-alert-set:hover, .btn-alert-ai:hover {
+  opacity: 0.9;
+}
+
+.btn-buy { background-color: var(--emerald); }
+.btn-sell { background-color: var(--red); }
+.btn-alert-set { background-color: var(--primary); color: var(--bg-color); }
+.btn-alert-ai { 
+  background-color: var(--primary); 
+  color: var(--bg-color);
+  width: 100%; 
+  margin-bottom: 8px;
+}
+
+.status-msg {
+  margin: 12px 0 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.key-value-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bg-secondary);
+}
+
+.key-value-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.kv-label {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.kv-value {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  color: var(--text-muted);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f4f6;
+  border-top-color: var(--text-main);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media(max-width: 1024px) {
+  .main-content {
+    grid-template-columns: 1fr;
+    padding: 20px 16px;
+  }
+  
+  .stock-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .price-info {
+    align-items: flex-start;
+    text-align: left;
+  }
+  
+  .chart-container {
+    height: 400px;
+  }
+}
 </style>

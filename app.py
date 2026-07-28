@@ -4,7 +4,7 @@ import json
 import os
 import random
 import time
-from datetime import timedelta
+from datetime import timedelta, timezone
 from functools import wraps
 
 import requests
@@ -55,7 +55,10 @@ def create_app():
     )
     if not app.config["SECRET_KEY"]:
         raise RuntimeError("FLASK_SECRET_KEY is required. Configure it in your environment.")
-    CORS(app, origins=[os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")], supports_credentials=True)
+    # Keep localhost and 127.0.0.1 both usable in development. Session cookies
+    # are host-bound, so the frontend selects the matching API hostname.
+    frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
+    CORS(app, origins=list({frontend_origin, "http://localhost:5173", "http://127.0.0.1:5173"}), supports_credentials=True)
     init_database()
     login_manager.init_app(app)
     return app
@@ -134,7 +137,14 @@ def get_fresh_quote(db, symbol):
     if not quote:
         return None
     max_age = int(os.getenv("QUOTE_MAX_AGE_SECONDS", "90"))
-    if utcnow() - quote["updated_at"] > timedelta(seconds=max_age):
+    updated_at = quote.get("updated_at")
+    if not updated_at:
+        return None
+    # Older documents and default PyMongo clients deserialize BSON dates as
+    # timezone-naive values. Treat BSON timestamps as UTC for safe comparison.
+    if updated_at.tzinfo is None:
+        updated_at = updated_at.replace(tzinfo=timezone.utc)
+    if utcnow() - updated_at > timedelta(seconds=max_age):
         return None
     return quote
 
@@ -524,6 +534,60 @@ def daily_prediction(symbol):
         return jsonify({"outlook": "Not yet calculated."})
     with open(DAILY_PREDICTIONS_FILE, "r", encoding="utf-8") as source:
         return jsonify({"outlook": json.load(source).get(symbol, "Not available.")})
+
+
+@app.route("/api/top_stocks", methods=["GET"])
+def top_stocks():
+    symbols = ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS", "SBIN.NS"]
+    try:
+        import yfinance as yf
+        data = []
+        for symbol in symbols:
+            info = yf.Ticker(symbol).fast_info
+            current_price = info.last_price
+            prev_close = info.previous_close
+            change_percent = ((current_price - prev_close) / prev_close) * 100 if prev_close else 0
+            data.append({
+                "symbol": symbol,
+                "name": symbol.replace(".NS", ""),
+                "price": current_price,
+                "change_percent": change_percent
+            })
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error fetching top stocks: {e}")
+        return jsonify([])
+
+
+def extract_news(raw_news):
+    results = []
+    for n in raw_news[:8]:
+        content = n.get("content", n)
+        link = content.get("clickThroughUrl", {}).get("url", content.get("link", ""))
+        provider = content.get("provider", {})
+        provider_name = provider.get("displayName", "Yahoo Finance") if isinstance(provider, dict) else provider
+        results.append({
+            "title": content.get("title", ""),
+            "summary": content.get("summary", ""),
+            "link": link,
+            "pubDate": content.get("pubDate", ""),
+            "provider": provider_name
+        })
+    return results
+
+@app.get("/api/news")
+def get_global_news():
+    try:
+        return jsonify(extract_news(yf.Ticker('^NSEI').news))
+    except Exception as e:
+        return jsonify([])
+
+@app.get("/api/news/<symbol>")
+def get_stock_news(symbol):
+    try:
+        return jsonify(extract_news(yf.Ticker(symbol).news))
+    except Exception as e:
+        return jsonify([])
 
 
 @app.post("/predict/start/<symbol>")

@@ -1,8 +1,19 @@
 <template>
-  <div class="notifications" aria-live="polite">
-    <article v-for="item in visible" :key="item.id" class="toast">
-      <strong>{{ item.title }}</strong><span>{{ item.body }}</span>
-    </article>
+  <div class="fixed top-5 right-5 z-50 flex flex-col gap-3 w-80 max-w-[calc(100vw-2.5rem)] pointer-events-none" aria-live="polite">
+    <TransitionGroup name="toast">
+      <article
+        v-for="(item, index) in visible"
+        :key="item.id || index"
+        class="toast-card pointer-events-auto bg-white dark:bg-[#0a0a0a] rounded-xl shadow-lg dark:shadow-none border border-gray-100 dark:border-[#1a1a1a] p-4 transition-all duration-300"
+      >
+        <strong v-if="item.title" class="block font-bold text-black dark:text-white text-sm tracking-tight leading-snug mb-1">
+          {{ item.title }}
+        </strong>
+        <span v-if="item.body || item.message || item.text" class="block text-gray-600 dark:text-gray-400 text-sm leading-relaxed font-normal">
+          {{ item.body || item.message || item.text }}
+        </span>
+      </article>
+    </TransitionGroup>
   </div>
 </template>
 
@@ -31,12 +42,11 @@ function notify(item) {
   window.setTimeout(() => { visible.value = visible.value.filter((current) => current !== item); }, 8000);
 }
 onMounted(async () => {
-  // A user interaction is required before browsers permit audio playback.
   window.addEventListener("pointerdown", () => { audioEnabled = true; audioContext = new AudioContext(); }, { once: true });
   try {
     const { data } = await api.get("/api/notifications");
     visible.value = data.slice(0, 2);
-  } catch (_) { /* Session may have expired; the router guard handles navigation. */ }
+  } catch (_) {}
   source = new EventSource(`${api.defaults.baseURL}/api/stream/notifications`, { withCredentials: true });
   source.onmessage = (event) => notify(JSON.parse(event.data));
 });
@@ -44,5 +54,23 @@ onUnmounted(() => source?.close());
 </script>
 
 <style scoped>
-.notifications { position:fixed; z-index:50; right:22px; top:22px; display:grid; gap:12px; width:min(370px,calc(100vw - 44px)); }.toast { display:grid; gap:6px; padding:16px; border:1px solid rgba(45,212,191,.4); border-radius:18px; color:#ecfeff; background:linear-gradient(135deg,#12343be8,#0b1520e8); box-shadow:0 18px 42px #0009,inset 0 1px #ffffff12; backdrop-filter:blur(18px); animation:toast-in .35s ease-out; }.toast strong{color:#5eead4}.toast span { font-size:.9rem; line-height:1.45; color:#cbd5e1; }@keyframes toast-in{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+.toast-card {
+  border-left: 4px solid #10b981;
+}
+
+.toast-enter-active,
+.toast-leave-active,
+.toast-move {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}
 </style>
